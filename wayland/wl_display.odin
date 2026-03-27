@@ -40,7 +40,7 @@ wl_display_set_event_delete_id_callback :: proc(callback: Wl_Display_Event_Delet
     Wl_Display_Events_Callbacks[.error].user_data = user_data
 }
 
-wl_display_sync :: proc(new_callback_id: u32, done_callback: proc(user_data: rawptr, wl_callback_id: u32, callback_data: u32)) -> bool {
+wl_display_sync :: proc(new_callback_id: u32, done_callback: Wl_Callback_Event_Done_Callback, user_data: rawptr) -> bool {
  fd := wayland_file_descriptor
  id := generate_new_id(wl_callback_dispatch)
  msg: Message
