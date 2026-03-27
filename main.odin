@@ -4,7 +4,7 @@ import "core:fmt"
 import "wayland"
 
 main :: proc() {
-	fd, _ := wayland.connect()
+	wayland.connect()
 	//msg := wayland.make_message(1, 1, []u8{2, 0, 0, 0})
 	msg: wayland.Message
 	msg_buffer: [4]u8
@@ -14,8 +14,8 @@ main :: proc() {
 	wayland.write_uint_into_message_args(msg, 2)
 	wayland.set_message_length_based_on_args_length(&msg)
 
-	wayland.write_message(fd, msg)	
-	for answer, ok := wayland.read_message(fd); ok; answer, ok = wayland.read_message(fd){
+	wayland.write_message(msg)	
+	for answer, ok := wayland.read_message(); ok; answer, ok = wayland.read_message(){
 		fmt.printf("id: %d | ", wayland.get_message_object_id(answer))
 		fmt.printf("opcode: %d | ", wayland.get_message_opcode(answer))
 		length := wayland.get_message_length(answer)

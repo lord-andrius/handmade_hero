@@ -8,12 +8,15 @@ import "core:slice"
 import "base:runtime"
 import "core:fmt"
 
-connect :: proc() -> (linux.Fd, bool) {
+
+wayland_file_descriptor: linux.Fd
+
+connect :: proc() ->  bool {
     defer free_all(context.temp_allocator)
 
     xdg_runtime_dir, found_xdg_runtime_dir := os.lookup_env_alloc("XDG_RUNTIME_DIR", context.temp_allocator)
     if (!found_xdg_runtime_dir) {
-        return 0, false
+        return false
     }
 
 
@@ -36,14 +39,15 @@ connect :: proc() -> (linux.Fd, bool) {
 
     wayland_socket_file_descriptor, socket_erro := linux.socket(.UNIX, .STREAM, {}, .HOPOPT)
     if (socket_erro != .NONE) {
-        return 0, false
+        return false
     }
 
     if err := linux.connect(wayland_socket_file_descriptor, &socket_addr); err != .NONE {
-        return 0, false
+        return false
     }
 
-    return wayland_socket_file_descriptor, true
+    wayland_file_descriptor = wayland_socket_file_descriptor
+    return true
 }
 
 // números decimais
@@ -114,7 +118,8 @@ set_message_length_based_on_args_length :: proc(message: ^Message) {
 }
 
 
-write_message :: proc(fd: linux.Fd, message: Message) -> (int, bool) {
+write_message :: proc(message: Message) -> (int, bool) {
+    fd := wayland_file_descriptor
     message := message
     message_bytes, err := make([]u8, get_message_length(message), context.temp_allocator)
     defer free_all(context.temp_allocator)
@@ -133,7 +138,8 @@ write_message :: proc(fd: linux.Fd, message: Message) -> (int, bool) {
 }
 
 
-read_message :: proc(fd: linux.Fd) -> (Message, bool) {
+read_message :: proc() -> (Message, bool) {
+    fd := wayland_file_descriptor
     message: Message
     header_buf: runtime.Raw_Slice
     header_buf.data = rawptr(&message.header)
