@@ -4,12 +4,20 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
             "type": "lldb-dap",
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceFolder}/vahalla",
+            "args": [],
+            "env": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Debug casa",
+            "program": "${workspaceFolder}/handmade_hero",
             "args": [],
             "env": [],
             "cwd": "${workspaceFolder}"

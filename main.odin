@@ -3,9 +3,23 @@ package main
 import "core:fmt"
 import "wayland"
 
+error_callback :: proc(user_data: rawptr, wl_display_id: u32, error_obj_id: u32, error: wayland.Global_Error, message: string) {
+	fmt.printfln("%v %s", error, message)
+}
+
+handle_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32, interface: string, version: u32) {
+	fmt.printfln("name: %d | interface: %s | version: %d", name, interface, version)
+}
+
+handle_done_sync_callback :: proc(user_data: rawptr, wl_callback_id: u32, callback_data: u32) {
+	deve_sair := transmute(^bool)user_data
+	deve_sair^ = true
+}
+
 main :: proc() {
 	wayland.connect()
 	//msg := wayland.make_message(1, 1, []u8{2, 0, 0, 0})
+	/*
 	msg: wayland.Message
 	msg_buffer: [4]u8
 	wayland.set_message_object(&msg, 1)
@@ -15,23 +29,24 @@ main :: proc() {
 	wayland.set_message_length_based_on_args_length(&msg)
 
 	wayland.write_message(msg)	
-	for answer, ok := wayland.read_message(); ok; answer, ok = wayland.read_message(){
-		fmt.printf("id: %d | ", wayland.get_message_object_id(answer))
-		fmt.printf("opcode: %d | ", wayland.get_message_opcode(answer))
-		length := wayland.get_message_length(answer)
-		fmt.printf("length: %d | ", length)
-		argument_index := 0
-		global_object_id: u32
-		interface_name: string
-		version: u32
+	*/
+	wayland.wl_display_set_event_error_callback(error_callback, nil)
 
-		global_object_id, argument_index = wayland.read_uint_from_message_args(answer)
-		interface_name, argument_index = wayland.read_string_from_message_args(answer, argument_index)
-		version, argument_index = wayland.read_uint_from_message_args(answer, argument_index)
+	registry, _ := wayland.wl_display_get_registry()
 
-		fmt.printf("global object id: %d | ", global_object_id)
-		fmt.printf("interface name: %s | ", interface_name);
-		fmt.printf("version: %d\n", version);
+	wayland.wl_registry_set_event_global_callback(registry, handle_global_callback, nil)
+	wayland.wl_registry_set_event_global_callback(registry, handle_global_callback, nil)
+
+
+	deve_sair := false
+	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
+
+	for !deve_sair {
+		msg, ok := wayland.read_message()
+		defer delete(msg.arguments)
+		wayland.wl_display_dispath(msg)
+		wayland.wl_registry_dispatch(msg)
+		wayland.wl_callback_dispatch(msg)
 	}
 	
 }

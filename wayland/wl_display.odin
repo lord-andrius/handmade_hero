@@ -40,9 +40,12 @@ wl_display_set_event_delete_id_callback :: proc(callback: Wl_Display_Event_Delet
     Wl_Display_Events_Callbacks[.error].user_data = user_data
 }
 
-wl_display_sync :: proc(new_callback_id: u32, done_callback: Wl_Callback_Event_Done_Callback, user_data: rawptr) -> bool {
+
+// retorno o id da callback
+wl_display_sync :: proc(done_callback: Wl_Callback_Event_Done_Callback, user_data: rawptr) -> (u32, bool) {
  fd := wayland_file_descriptor
  id := generate_new_id(wl_callback_dispatch)
+ wl_callback_set_done_callback(id, user_data, done_callback)
  msg: Message
  set_message_object(&msg, WL_DISPLAY_OBJECT_ID)
  set_message_opcode(&msg, u16(Wl_Display_Requests.sync))
@@ -51,10 +54,10 @@ wl_display_sync :: proc(new_callback_id: u32, done_callback: Wl_Callback_Event_D
  write_uint_into_message_args(msg, id)
  set_message_length_based_on_args_length(&msg)
  _, ok := write_message(msg)
- return ok
+ return id, ok
 }
 
-wl_display_get_registry :: proc() -> bool {
+wl_display_get_registry :: proc() -> (u32, bool) {
     fd := wayland_file_descriptor
     id := generate_new_id(wl_registry_dispatch)
     msg: Message
@@ -65,12 +68,15 @@ wl_display_get_registry :: proc() -> bool {
     write_uint_into_message_args(msg, id)
     set_message_length_based_on_args_length(&msg)
     _, ok := write_message(msg)
-    return ok
+    return id, ok
 }
 
 
 wl_display_dispath :: proc(message: Message) {
  object_id := get_message_object_id(message)
+ if object_id != WL_DISPLAY_OBJECT_ID {
+    return
+ }
  event := Wl_Display_Events(get_message_opcode(message))
  length := get_message_length(message)
 

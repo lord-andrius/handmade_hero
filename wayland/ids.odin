@@ -1,6 +1,6 @@
 package wayland
 
-next_available_id: u32 = 256
+next_available_id: u32 = 2
 
 NEXT_AVAILABLE_ID_LIMIT :: 0xFEFFFFFF
 
