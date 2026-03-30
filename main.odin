@@ -18,18 +18,6 @@ handle_done_sync_callback :: proc(user_data: rawptr, wl_callback_id: u32, callba
 
 main :: proc() {
 	wayland.connect()
-	//msg := wayland.make_message(1, 1, []u8{2, 0, 0, 0})
-	/*
-	msg: wayland.Message
-	msg_buffer: [4]u8
-	wayland.set_message_object(&msg, 1)
-	wayland.set_message_opcode(&msg, 1)
-	msg.arguments = msg_buffer[:]
-	wayland.write_uint_into_message_args(msg, 2)
-	wayland.set_message_length_based_on_args_length(&msg)
-
-	wayland.write_message(msg)	
-	*/
 	wayland.wl_display_set_event_error_callback(error_callback, nil)
 
 	registry, _ := wayland.wl_display_get_registry()
