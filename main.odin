@@ -32,9 +32,9 @@ main :: proc() {
 	for !deve_sair {
 		msg, ok := wayland.read_message()
 		defer delete(msg.arguments)
-		wayland.wl_display_dispath(msg)
-		wayland.wl_registry_dispatch(msg)
-		wayland.wl_callback_dispatch(msg)
+		if dispatch, ok := wayland.id_context.object_id_to_interface_displatch_proc[wayland.get_message_object_id(msg)]; ok {
+			dispatch(msg)
+		}
 	}
 	
 }

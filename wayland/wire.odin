@@ -118,7 +118,7 @@ set_message_length_based_on_args_length :: proc(message: ^Message) {
 }
 
 
-write_message :: proc(message: Message) -> (int, bool) {
+write_message :: proc(message: Message, control: []u8 = []u8{}) -> (int, bool) {
     fd := wayland_file_descriptor
     message := message
     message_bytes, err := make([]u8, get_message_length(message), context.temp_allocator)
@@ -128,8 +128,15 @@ write_message :: proc(message: Message) -> (int, bool) {
     mem.copy(transmute(rawptr)&message_bytes[8], transmute(rawptr)&message.arguments[0], len(message.arguments))
 
     
-
-    bytes_written, erro  := linux.write(fd, message_bytes)
+    msg_header: linux.Msg_Hdr
+    msg_header.iov = []linux.IO_Vec{
+        {
+            base = &message_bytes[0],
+            len = len(message_bytes),
+        }
+    }
+    msg_header.control = control
+    bytes_written, erro  := linux.sendmsg(fd, &msg_header, {.NOSIGNAL, .DONTWAIT})
     if erro != .NONE {
         return 0, false
     }
