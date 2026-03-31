@@ -195,7 +195,8 @@ read_string_from_message_args :: proc(message: Message, index_on_arguments: int 
     string_length, args_index = read_uint_from_message_args(message, args_index)
     str: runtime.Raw_String
     str.data = transmute([^]byte)(&message.arguments[args_index])
-    str.len = int(string_length)
+    // -1 pq no length já tá '\0'
+    str.len = int(string_length - 1)
     // uso +1 porque as strings do wayland tem sentinela nulo(\0) no final.
     return transmute(string)str, args_index + int(string_length)
 }
