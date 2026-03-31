@@ -19,12 +19,15 @@ handle_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32
 	if interface == "wl_shm" {
 		wl_shm_id = wayland.bind_wl_shm_global_object(wl_registry_id, name)
 		wayland.wl_shm_set_format_callback(wl_shm_id, nil, handle_wl_shm_format_callback)
+		
+		//wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 	}
 }
 
 handle_done_sync_callback :: proc(user_data: rawptr, wl_callback_id: u32, callback_data: u32) {
 	deve_sair := transmute(^bool)user_data
-	deve_sair^ = true
+	fmt.println("done")
+	//deve_sair^ = true
 }
 
 main :: proc() {
@@ -38,11 +41,13 @@ main :: proc() {
 
 	deve_sair := false
 	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
+	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 
 	for !deve_sair {
 		msg, ok := wayland.read_message()
 		defer delete(msg.arguments)
-		if dispatch, ok := wayland.id_context.object_id_to_interface_displatch_proc[wayland.get_message_object_id(msg)]; ok {
+		id := wayland.get_message_object_id(msg)
+		if dispatch, ok := wayland.id_context.object_id_to_interface_displatch_proc[id]; ok {
 			dispatch(msg)
 		}
 	}

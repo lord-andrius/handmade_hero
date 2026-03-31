@@ -14,13 +14,14 @@ Wl_Resgistry_Events :: enum(u32) {
 wl_registry_bind :: proc(wl_registry_id: u32, name: u32, id: u32) -> bool {
     msg: Message
     msg_args_buf: [8]u8
+    msg.arguments = msg_args_buf[:]
     set_message_object(&msg, wl_registry_id)
     set_message_opcode(&msg, u16(Wl_Registry_Requests.bind))
     index_args := 0
     index_args = write_uint_into_message_args(msg, name)
     write_uint_into_message_args(msg, id, index_args)
     set_message_length_based_on_args_length(&msg)
-    _, ok := write_message(msg)
+    bytes_escritos, ok := write_message(msg)
     return ok
 }
 
