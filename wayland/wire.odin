@@ -125,7 +125,9 @@ write_message :: proc(message: Message, control: []u8 = []u8{}) -> (int, bool) {
     defer free_all(context.temp_allocator)
 
     mem.copy(transmute(rawptr)&message_bytes[0], &message.header, 8)
-    mem.copy(transmute(rawptr)&message_bytes[8], transmute(rawptr)&message.arguments[0], len(message.arguments))
+    if len(message.arguments) > 0 {
+        mem.copy(transmute(rawptr)&message_bytes[8], transmute(rawptr)&message.arguments[0], len(message.arguments))
+    }
 
     
     msg_header: linux.Msg_Hdr
@@ -169,24 +171,33 @@ read_message :: proc() -> (Message, bool) {
 
 read_uint_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> (u32, int) {
  // remove padding
- index_on_arguments := index_on_arguments + (index_on_arguments % 4)
- return (transmute(^u32)(&message.arguments[index_on_arguments]))^, index_on_arguments + size_of(u32)
+ args_index := index_on_arguments
+ if index_on_arguments % 4 != 0 {
+    args_index = index_on_arguments + ( 4 - (index_on_arguments % 4))
+ }
+ return (transmute(^u32)(&message.arguments[args_index]))^, args_index + size_of(u32)
 }
 
 read_int_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> (i32, int) {
- index_on_arguments := index_on_arguments + (index_on_arguments % 4)
- return (transmute(^i32)(&message.arguments[index_on_arguments]))^, index_on_arguments + size_of(i32)
+    args_index := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        args_index = index_on_arguments + ( 4 - (index_on_arguments % 4))
+    }
+ return (transmute(^i32)(&message.arguments[args_index]))^, args_index + size_of(i32)
 }
 
 read_string_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> (string, int) {
-    index_on_arguments := index_on_arguments + (index_on_arguments % 4)
+    args_index := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        args_index = index_on_arguments + ( 4 - (index_on_arguments % 4))
+    }
     string_length: u32
-    string_length, index_on_arguments = read_uint_from_message_args(message, index_on_arguments)
+    string_length, args_index = read_uint_from_message_args(message, args_index)
     str: runtime.Raw_String
-    str.data = transmute([^]byte)(&message.arguments[index_on_arguments])
+    str.data = transmute([^]byte)(&message.arguments[args_index])
     str.len = int(string_length)
     // uso +1 porque as strings do wayland tem sentinela nulo(\0) no final.
-    return transmute(string)str, index_on_arguments + int(string_length + 1)
+    return transmute(string)str, args_index + int(string_length)
 }
 
 // É responsabilidade, de quem chama a função garantir que tem espaço
