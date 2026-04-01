@@ -1,8 +1,9 @@
 package wayland
 
+import "core:sys/posix"
 import "core:sys/linux"
 import "base:runtime"
-
+import "core:mem"
 Wl_Shm_Error :: enum(u32) {
     invalid_format,
     invalid_stride,
@@ -160,19 +161,23 @@ wl_shm_create_pool :: proc(wl_shm_id: u32, fd: linux.Fd, size_in_bytes: int) -> 
     fd := fd
     assert(size_in_bytes != 0)
     id := generate_new_id(nil) // shm_poll não tem eventos
-    control := transmute([]u8)runtime.Raw_Slice{
-        data = &fd,
-        len = size_of(linux.Fd),
-    }
+    control: [size_of(posix.cmsghdr) + size_of(linux.Fd)]u8
+    csmg := transmute(^posix.cmsghdr)&control[0]
+    csmg.cmsg_len = len(control)
+    csmg.cmsg_level = posix.SOL_SOCKET
+    csmg.cmsg_type = posix.SCM_RIGHTS
+    (transmute(^linux.Fd)(posix.CMSG_DATA(csmg)))^ = fd
+    
     msg: Message
-    args_buf: [8]u8
+    args_buf: [12]u8
     msg.arguments = args_buf[:]
     set_message_object(&msg, wl_shm_id)
     set_message_opcode(&msg, u16(Wl_Shm_Requests.create_pool))
     args_index := write_uint_into_message_args(msg, id)
+    args_index = write_uint_into_message_args(msg, u32(fd), args_index)
     args_index = write_int_into_message_args(msg, i32(size_in_bytes), args_index)
     set_message_length_based_on_args_length(&msg)
-    _, ok := write_message(msg, control)
+    _, ok := write_message(msg, control[:])
     return id, ok
 }
 

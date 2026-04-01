@@ -36,7 +36,7 @@ create_shared_buffer :: proc(name: string, size_in_bytes: uint) -> (Shared_Buffe
         return {fd = linux.Fd(0), data = []u8{}}, false
     }
 
-    return {fd = fd, data = transmute([]u8)runtime.Raw_Slice{data = addr, len = int(size_in_bytes)}}, false 
+    return {fd = fd, data = transmute([]u8)runtime.Raw_Slice{data = addr, len = int(size_in_bytes)}}, true 
 }
 
 destroy_shared_buffer :: proc(sh: Shared_Buffer) {

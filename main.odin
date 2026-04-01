@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "wayland"
+import "shared"
 
 wl_shm_id: u32 = 0
 
@@ -26,7 +27,7 @@ handle_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32
 handle_done_sync_callback :: proc(user_data: rawptr, wl_callback_id: u32, callback_data: u32) {
 	deve_sair := transmute(^bool)user_data
 	fmt.println("done")
-	//deve_sair^ = true
+	deve_sair^ = true
 }
 
 main :: proc() {
@@ -49,5 +50,27 @@ main :: proc() {
 			dispatch(msg)
 		}
 	}
-	
+
+	WIDTH :: 1440
+	HEIGHT :: 900
+	BYTES_PER_PIXEL :: 4
+
+	buffer, ok := shared.create_shared_buffer("handmade", (WIDTH * HEIGHT * BYTES_PER_PIXEL) * 2)
+	assert(ok)
+	defer shared.destroy_shared_buffer(buffer)
+
+	wayland.wl_shm_create_pool(wl_shm_id, buffer.fd, len(buffer.data))
+
+	deve_sair = false
+
+	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
+
+	for !deve_sair {
+		msg, ok := wayland.read_message()
+		defer delete(msg.arguments)
+		id := wayland.get_message_object_id(msg)
+		if dispatch, ok := wayland.id_context.object_id_to_interface_displatch_proc[id]; ok {
+			dispatch(msg)
+		}
+	}
 }
