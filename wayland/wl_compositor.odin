@@ -1,8 +1,8 @@
 package wayland
 
-bind_wl_compsitor_global_object :: proc(wl_registry_id: u32, wl_compositor_name: u32) -> u32 {
+bind_wl_compsitor_global_object :: proc(wl_registry_id: u32, wl_compositor_name: u32, interface: string, version: u32) -> u32 {
     id := generate_new_id(nil)
-    wl_registry_bind(wl_registry_id, wl_compositor_name, id)
+    wl_registry_bind(wl_registry_id, wl_compositor_name, interface, version, id)
     return id
 }
 

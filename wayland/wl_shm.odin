@@ -150,9 +150,9 @@ wl_Shm_Events :: enum(u32) {
     format,
 }
 
-bind_wl_shm_global_object :: proc(wl_registry_id: u32, wl_shm_name: u32) -> u32 {
+bind_wl_shm_global_object :: proc(wl_registry_id: u32, wl_shm_name: u32, interface: string, version: u32) -> u32 {
     id := generate_new_id(wl_shm_dispatch)
-    wl_registry_bind(wl_registry_id, wl_shm_name, id)
+    wl_registry_bind(wl_registry_id, wl_shm_name, interface, version, id)
     return id
 }
 

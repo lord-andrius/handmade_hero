@@ -17,10 +17,9 @@ handle_wl_shm_format_callback :: proc(user_data: rawptr, wl_shm_id: u32, format:
 handle_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32, interface: string, version: u32) {
 	fmt.printfln("name: %d | interface: %s | version: %d", name, interface, version)
 	if interface == "wl_shm" {
-		wl_shm_id = wayland.bind_wl_shm_global_object(wl_registry_id, name)
+		wl_shm_id = wayland.bind_wl_shm_global_object(wl_registry_id, name, interface, version)
 		wayland.wl_shm_set_format_callback(wl_shm_id, nil, handle_wl_shm_format_callback)
 		
-		//wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 	}
 }
 
@@ -40,7 +39,6 @@ main :: proc() {
 
 
 	deve_sair := false
-	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 
 	for !deve_sair {

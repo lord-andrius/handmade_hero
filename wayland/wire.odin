@@ -206,33 +206,42 @@ read_string_from_message_args :: proc(message: Message, index_on_arguments: int 
 // NOTA: Quando for allocar conte com paddings
 write_uint_into_message_args :: proc(message: Message, arg: u32, index_on_arguments: int = 0) -> int {
     // isso garanti que o alinhamento dos bytes estejam corretos
-    index_on_arguments := index_on_arguments + (index_on_arguments % 4)
+    index_arguments := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
+    }
     // garantindo que tem espaço nos argumentos
-    assert(index_on_arguments + size_of(arg) <= len(message.arguments))
-    (transmute(^u32)&message.arguments[index_on_arguments])^ = arg
-    index_on_arguments += size_of(arg)
-    return index_on_arguments
+    assert(index_arguments + size_of(arg) <= len(message.arguments))
+    (transmute(^u32)&message.arguments[index_arguments])^ = arg
+    index_arguments += size_of(arg)
+    return index_arguments
 }
 
 write_int_into_message_args :: proc(message: Message, arg: i32, index_on_arguments: int = 0) -> int {
-    index_on_arguments := index_on_arguments + (index_on_arguments % 4)
+    index_arguments := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
+    }
     assert(index_on_arguments + size_of(arg) <= len(message.arguments))
-    (transmute(^i32)&message.arguments[index_on_arguments])^ = arg
-    index_on_arguments += size_of(arg)
-    return index_on_arguments
+    (transmute(^i32)&message.arguments[index_arguments])^ = arg
+    index_arguments += size_of(arg)
+    return index_arguments
 }
 
 write_string_into_message_args :: proc(message: Message, arg: string, index_on_arguments: int = 0) -> int{
-    index_on_arguments := index_on_arguments + (index_on_arguments % 4)
+    index_arguments := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
+    }
     // o mais um é para o byte nulo.
-    assert(index_on_arguments + size_of(u32) + len(arg) + 1 < len(message.arguments))
+    assert(index_arguments + size_of(u32) + len(arg) + 1 < len(message.arguments))
     // como strings no wayland tem são: {tamanho: u32, data: [u8...], \0} temos que colocar o tamnhho.
-    string_length := len(arg)
-    index_on_arguments = write_uint_into_message_args(message, u32(len(arg)), index_on_arguments)
-    mem.copy(transmute(rawptr)&message.arguments[index_on_arguments], (transmute(runtime.Raw_String)arg).data, len(arg))
-    index_on_arguments += len(arg)
+    string_length := len(arg) + 1 // o tamanho da string tem que 
+    index_arguments = write_uint_into_message_args(message, u32(string_length), index_arguments)
+    mem.copy(transmute(rawptr)&message.arguments[index_arguments], (transmute(runtime.Raw_String)arg).data, len(arg))
+    index_arguments += len(arg)
     // escrevendo o byte nulo depois do conteúdo da string.
-    message.arguments[index_on_arguments] = 0
-    index_on_arguments += 1
-    return index_on_arguments
+    message.arguments[index_arguments] = 0
+    index_arguments += 1
+    return index_arguments
 }
