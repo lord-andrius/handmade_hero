@@ -47,6 +47,20 @@ add_one_user_to_shared_buffer :: proc(sh: ^Shared_Buffer) {
     sh.reference_count += 1
 }
 
+resize_shared_buffer :: proc(sh: ^Shared_Buffer, new_size: int) -> bool {
+    // não sei se isso vai dar certo
+    // se der merda nos buffers isso pode ser a causa.
+    error := linux.ftruncate(sh.fd, i64(new_size))
+    if error != .NONE do return false
+    addr: rawptr
+    addr, error = linux.mmap(0, uint(new_size), {.READ, .WRITE}, {.SHARED}, sh.fd, 0)
+    if error != .NONE {
+        return false
+    }
+    sh.data = transmute([]u8)runtime.Raw_Slice{data = addr, len = int(new_size)}
+    return true
+}
+
 destroy_shared_buffer :: proc(sh: ^Shared_Buffer) {
     if sh.reference_count > 0 {
         sh.reference_count -= 1

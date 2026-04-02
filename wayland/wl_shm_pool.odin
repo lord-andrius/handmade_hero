@@ -46,6 +46,6 @@ wl_shm_pool_destroy :: proc(wl_shm_pool: Wl_Shm_Pool) {
 
 
 // só pode aumentar
-wl_shm_pool_resize :: proc(wl_shm_pool: Wl_Shm_Pool, size: int) {
-    
+wl_shm_pool_resize :: proc(wl_shm_pool: Wl_Shm_Pool, new_size: int) {
+    assert(new_size > len(wl_shm_pool.shared_buffer.data))
 }
