@@ -59,7 +59,7 @@ main :: proc() {
 	assert(ok)
 	defer shared.destroy_shared_buffer(buffer)
 
-	wayland.wl_shm_create_pool(wl_shm_id, buffer.fd, len(buffer.data))
+	wayland.wl_shm_create_pool(wl_shm_id, buffer, len(buffer.data))
 
 	deve_sair = false
 

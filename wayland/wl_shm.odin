@@ -4,6 +4,10 @@ import "core:sys/posix"
 import "core:sys/linux"
 import "base:runtime"
 import "core:mem"
+import "../shared"
+
+
+
 Wl_Shm_Error :: enum(u32) {
     invalid_format,
     invalid_stride,
@@ -157,8 +161,7 @@ bind_wl_shm_global_object :: proc(wl_registry_id: u32, wl_shm_name: u32, interfa
     return id
 }
 
-wl_shm_create_pool :: proc(wl_shm_id: u32, fd: linux.Fd, size_in_bytes: int) -> (u32, bool) {
-    fd := fd
+wl_shm_create_pool :: proc(wl_shm_id: u32, shared_buffer: ^shared.Shared_Buffer, size_in_bytes: int) -> (Wl_Shm_Pool, bool) {
     assert(size_in_bytes != 0)
     id := generate_new_id(nil) // shm_poll não tem eventos
     control: [size_of(posix.cmsghdr) + size_of(linux.Fd)]u8
@@ -166,7 +169,7 @@ wl_shm_create_pool :: proc(wl_shm_id: u32, fd: linux.Fd, size_in_bytes: int) -> 
     csmg.cmsg_len = len(control)
     csmg.cmsg_level = posix.SOL_SOCKET
     csmg.cmsg_type = posix.SCM_RIGHTS
-    (transmute(^linux.Fd)(posix.CMSG_DATA(csmg)))^ = fd
+    (transmute(^linux.Fd)(posix.CMSG_DATA(csmg)))^ = shared_buffer.fd
     
     msg: Message
     args_buf: [12]u8
@@ -174,11 +177,11 @@ wl_shm_create_pool :: proc(wl_shm_id: u32, fd: linux.Fd, size_in_bytes: int) -> 
     set_message_object(&msg, wl_shm_id)
     set_message_opcode(&msg, u16(Wl_Shm_Requests.create_pool))
     args_index := write_uint_into_message_args(msg, id)
-    args_index = write_uint_into_message_args(msg, u32(fd), args_index)
+    args_index = write_uint_into_message_args(msg, u32(shared_buffer.fd), args_index)
     args_index = write_int_into_message_args(msg, i32(size_in_bytes), args_index)
     set_message_length_based_on_args_length(&msg)
     _, ok := write_message(msg, control[:])
-    return id, ok
+    return Wl_Shm_Pool{shared_buffer = shared_buffer, wl_shm_id = id}, ok
 }
 
 // basicamente deleta o wl_shm mas os objetos criados por ele
