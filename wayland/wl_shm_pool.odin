@@ -30,7 +30,7 @@ wl_shm_pool_create_buffer :: proc(wl_shm_pool: ^Wl_Shm_Pool, offset: i32, width:
     index_arg = write_int_into_message_args(msg, stride, index_arg)
     index_arg = write_uint_into_message_args(msg, u32(format), index_arg)
     set_message_length_based_on_args_length(&msg)
-    _, ok := write_message(msg)
+    bytes_escritos, ok := write_message(msg)
     buffer := wl_buffer_create(new_buffer_id, wl_shm_pool.shared_buffer, transmute([]u8)runtime.Raw_Slice {
         data = &wl_shm_pool.shared_buffer.data[offset],
         len = int(offset + (width * height))

@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "wayland"
+
 import "shared"
 
 wl_shm_id: u32 = 0
@@ -59,8 +60,14 @@ main :: proc() {
 	assert(ok)
 	defer shared.destroy_shared_buffer(buffer)
 
-	wayland.wl_shm_create_pool(wl_shm_id, buffer, len(buffer.data))
+	pool, _ := wayland.wl_shm_create_pool(wl_shm_id, buffer, len(buffer.data))
 
+	//wl_buffer, _ := wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .argb8888)
+	//defer wayland.wl_buffer_destroy(wl_buffer)
+ 
+	wayland.wl_shm_pool_resize(&pool, 1920*1080*2*4)
+
+	wl_buffer, _ := wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .argb8888)
 	deve_sair = false
 
 	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
@@ -73,4 +80,5 @@ main :: proc() {
 			dispatch(msg)
 		}
 	}
+	
 }
