@@ -21,6 +21,12 @@ Xdg_Wm_Base_Events :: enum(u32) {
     ping,
 }
 
+
+xdg_wm_base_destroy :: proc(xdg_wm_base_id: u32) -> bool {
+    return true
+}
+
+
 xdg_wm_base_get_xdg_surface :: proc(xdg_wm_base_id: u32, wl_surface_id: u32) -> (u32, bool) {
     new_xdg_surface_id := generate_new_id(xdg_surface_dispatch)
 

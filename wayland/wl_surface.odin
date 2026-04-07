@@ -16,6 +16,7 @@ Wl_Surface_Requests :: enum(u32) {
     set_opaque_region,
     set_input_region,
     commit,
+    // depois implementar esses
     set_buffer_transform,
     set_buffer_scale,
     damage_buffer,
@@ -26,13 +27,27 @@ Wl_Surface_Requests :: enum(u32) {
 Wl_Surface_Events :: enum(u32) {
     enter,
     leave,
+    // depis implementar esses
     preferred_buffer_scale,
     preferred_buffer_transform,
 
 }
 
+Wl_Surface_Event_Enter_Callback :: proc(user_data: rawptr, wl_surface_id: u32, wl_output_id: u32)
+Wl_Surface_Event_Leave_callback :: proc(user_data: rawptr, wl_surface_id: u32, wl_output_id: u32)
+
+Wl_Surface_Events_Callbacks :: map[u32] struct {
+    callbacks: [Wl_Surface_Events]rawptr,
+    user_data: [Wl_Surface_Events]rawptr,
+}
+
+wl_surface_events_callbacks: Wl_Surface_Events_Callbacks = nil
+
+
 wl_surface_destroy :: proc(wl_surface_id: u32) -> bool {
     msg: Message
+    delete_key(&wl_surface_events_callbacks, wl_surface_id)
+    delete_id(wl_surface_id)
     set_message_object(&msg, wl_surface_id)
     set_message_opcode(&msg, u16(Wl_Surface_Requests.destroy))
     set_message_length_based_on_args_length(&msg)
@@ -115,6 +130,82 @@ wl_surface_commit :: proc(wl_surface_id: u32) -> bool {
     return ok
 }
 
-wl_surface_dispatch :: proc(msg: Message) {
+wl_surface_set_enter_callback :: proc(wl_surface_id: u32, user_data: rawptr, callback: Wl_Surface_Event_Enter_Callback) {
+    if wl_surface_events_callbacks == nil {
+        wl_surface_events_callbacks = make(type_of(wl_surface_events_callbacks))
+    }
     
+    if events, ok := wl_surface_events_callbacks[wl_surface_id]; ok {
+        events.callbacks[.enter] = rawptr(callback)
+        events.user_data[.enter] = user_data
+    } else {
+         wl_surface_events_callbacks[wl_surface_id] = {
+            callbacks = {
+                .enter = rawptr(callback),
+                .leave = nil,
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = nil 
+            },
+            user_data = {
+                .enter = user_data,
+                .leave = nil,
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = nil
+            },
+        }
+    }
+}
+
+wl_surface_set_leave_callback :: proc(wl_surface_id: u32, user_data: rawptr, callback: Wl_Surface_Event_Leave_callback) {
+    if wl_surface_events_callbacks == nil {
+        wl_surface_events_callbacks = make(type_of(wl_surface_events_callbacks))
+    }
+    
+    if events, ok := wl_surface_events_callbacks[wl_surface_id]; ok {
+        events.callbacks[.enter] = rawptr(callback)
+        events.user_data[.enter] = user_data
+    } else {
+         wl_surface_events_callbacks[wl_surface_id] = {
+            callbacks = {
+                .enter = nil,
+                .leave = rawptr(callback),
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = nil 
+            },
+            user_data = {
+                .enter = nil,
+                .leave = user_data,
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = nil
+            },
+        }
+    }
+}
+
+
+wl_surface_dispatch :: proc(msg: Message) {
+    wl_surface_id := get_message_object_id(msg)
+    event := Wl_Surface_Events(get_message_opcode(msg))
+    callbacks, ok := wl_surface_events_callbacks[wl_surface_id]
+    if !ok do return
+    #partial switch event {
+        case .enter:
+            wl_output_id, _ := read_uint_from_message_args(msg)
+            if callbacks.callbacks[.enter] != nil {
+                Wl_Surface_Event_Enter_Callback(callbacks.callbacks[.enter])(
+                    callbacks.user_data[.enter],
+                    wl_surface_id,
+                    wl_output_id
+                )
+            }
+        case .leave:
+            wl_output_id, _ := read_uint_from_message_args(msg)
+            if callbacks.callbacks[.leave] != nil {
+                Wl_Surface_Event_Leave_callback(callbacks.callbacks[.leave])(
+                    callbacks.user_data[.leave],
+                    wl_surface_id,
+                    wl_output_id
+                )
+            }
+    }
 }
