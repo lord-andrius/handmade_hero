@@ -14,6 +14,8 @@ Wl_Compositor_Requests :: enum(u32) {
 wl_compositor_create_surface :: proc(wl_compositor_id: u32) -> u32 {
     id := generate_new_id(wl_surface_dispatch)
     msg: Message
+    arg_buf: [size_of(u32)]u8
+    msg.arguments = arg_buf[:]
     set_message_object(&msg, wl_compositor_id)
     set_message_opcode(&msg, u16(Wl_Compositor_Requests.create_surface))
     write_uint_into_message_args(msg, id)

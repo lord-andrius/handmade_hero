@@ -56,7 +56,7 @@ wl_surface_destroy :: proc(wl_surface_id: u32) -> bool {
 }
 
 wl_surface_attach :: proc(wl_surface_id: u32, buffer: ^Wl_Buffer, x: i32 = 0, y: i32 = 0) -> bool {
-    assert(x != 0 && y != 0, "Use wl_surface_offset for when specifiyng offset")
+    assert(x == 0 && y == 0, "Use wl_surface_offset for when specifiyng offset")
     msg: Message
     args_buf: [size_of(u32) * 3]u8
     msg.arguments = args_buf[:]

@@ -6,6 +6,8 @@ import "wayland"
 import "shared"
 
 wl_shm_id: u32 = 0
+wl_compositor_id : u32 = 0
+xdg_wm_base_id: u32 = 0
 
 error_callback :: proc(user_data: rawptr, wl_display_id: u32, error_obj_id: u32, error: wayland.Global_Error, message: string) {
 	fmt.printfln("%v %s", error, message)
@@ -21,7 +23,10 @@ handle_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32
 	if interface == "wl_shm" {
 		wl_shm_id = wayland.bind_wl_shm_global_object(wl_registry_id, name, interface, version)
 		wayland.wl_shm_set_format_callback(wl_shm_id, nil, handle_wl_shm_format_callback)
-		
+	} else if interface == "xdg_wm_base" {
+		xdg_wm_base_id = wayland.bind_xdg_wm_base(wl_registry_id, name, interface, version)
+	} else if interface == "wl_compositor" {
+		wl_compositor_id = wayland.bind_wl_compsitor_global_object(wl_registry_id, name, interface, version) 
 	}
 }
 
@@ -69,6 +74,14 @@ main :: proc() {
 
 	wl_buffer, _ := wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .argb8888)
 	deve_sair = false
+
+	wl_surface_id := wayland.wl_compositor_create_surface(wl_compositor_id)
+
+	// Acho que estou fazendo isso errado
+	//defer wayland.wl_surface_destroy(wl_surface_id)
+
+	xdg_surface_id, _ := wayland.xdg_wm_base_get_xdg_surface(xdg_wm_base_id, wl_surface_id)
+
 
 	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 
