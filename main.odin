@@ -5,6 +5,7 @@ import "core:image"
 import "core:image/bmp"
 import "core:fmt"
 import "wayland"
+import "core:math/rand"
 
 import "shared"
 
@@ -104,9 +105,9 @@ main :: proc() {
 	window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .xrgb8888)
 	deve_sair = false
 
-	window_context.buffer.data[1] = 0xFF
-	window_context.buffer.data[2] = 0xFF
-	window_context.buffer.data[3] = 0xFF
+	for &p in window_context.buffer.data {
+		p = u8(rand.int64_range(0, 255))
+	}
 
 
 	window_context.wl_surface_id = wayland.wl_compositor_create_surface(wl_compositor_id)
