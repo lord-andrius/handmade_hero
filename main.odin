@@ -1,13 +1,32 @@
 package main
 
+import "base:runtime"
+import "core:image"
+import "core:image/bmp"
 import "core:fmt"
 import "wayland"
 
 import "shared"
 
+
+Window_Context :: struct {
+	buffer: ^wayland.Wl_Buffer,
+	wl_surface_id: u32,
+	xdg_surface_id: u32,
+	xdg_toplevel_id: u32,
+	has_been_congigured_once: bool,
+}
+
+window_context: Window_Context
+
 wl_shm_id: u32 = 0
 wl_compositor_id : u32 = 0
 xdg_wm_base_id: u32 = 0
+
+
+WIDTH :: 1440
+HEIGHT :: 900
+BYTES_PER_PIXEL :: 4
 
 error_callback :: proc(user_data: rawptr, wl_display_id: u32, error_obj_id: u32, error: wayland.Global_Error, message: string) {
 	fmt.printfln("%v %s", error, message)
@@ -36,6 +55,19 @@ handle_done_sync_callback :: proc(user_data: rawptr, wl_callback_id: u32, callba
 	deve_sair^ = true
 }
 
+handle_xdg_surface_configure :: proc(user_data: rawptr, xdg_surface_id: u32, serial: u32) {
+	fmt.println("xdg_surface_configure")
+	if window_context.has_been_congigured_once {
+		wayland.wl_surface_attach(window_context.wl_surface_id, window_context.buffer)
+	}
+	wayland.xdg_surface_set_window_geometry(window_context.xdg_surface_id, 0, 0, WIDTH, HEIGHT)
+	wayland.wl_surface_commit(window_context.wl_surface_id)
+	wayland.xdg_surface_ack_configure(xdg_surface_id, serial)
+	if window_context.has_been_congigured_once == false {
+		window_context.has_been_congigured_once = true
+	}
+}
+
 main :: proc() {
 	wayland.connect()
 	wayland.wl_display_set_event_error_callback(error_callback, nil)
@@ -57,9 +89,6 @@ main :: proc() {
 		}
 	}
 
-	WIDTH :: 1440
-	HEIGHT :: 900
-	BYTES_PER_PIXEL :: 4
 
 	buffer, ok := shared.create_shared_buffer("handmade", (WIDTH * HEIGHT * BYTES_PER_PIXEL) * 2)
 	assert(ok)
@@ -72,18 +101,29 @@ main :: proc() {
  
 	wayland.wl_shm_pool_resize(&pool, 1920*1080*2*4)
 
-	wl_buffer, _ := wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .argb8888)
+	window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .xrgb8888)
 	deve_sair = false
 
-	wl_surface_id := wayland.wl_compositor_create_surface(wl_compositor_id)
-
-	// Acho que estou fazendo isso errado
-	//defer wayland.wl_surface_destroy(wl_surface_id)
-
-	xdg_surface_id, _ := wayland.xdg_wm_base_get_xdg_surface(xdg_wm_base_id, wl_surface_id)
+	window_context.buffer.data[1] = 0xFF
+	window_context.buffer.data[2] = 0xFF
+	window_context.buffer.data[3] = 0xFF
 
 
-	wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
+	window_context.wl_surface_id = wayland.wl_compositor_create_surface(wl_compositor_id)
+	defer wayland.wl_surface_destroy(window_context.wl_surface_id)
+
+	window_context.xdg_surface_id, _ = wayland.xdg_wm_base_get_xdg_surface(xdg_wm_base_id, window_context.wl_surface_id)
+	defer wayland.xdg_surface_destroy(window_context.xdg_surface_id)
+	wayland.xdg_surface_set_configure_callback(window_context.xdg_surface_id, nil, handle_xdg_surface_configure)
+	
+	
+	window_context.xdg_toplevel_id, _ = wayland.xdg_surface_get_toplevel(window_context.xdg_surface_id)
+	defer wayland.xdg_toplevel_destroy(window_context.xdg_toplevel_id)
+	wayland.wl_surface_commit(window_context.wl_surface_id)
+	window_context.has_been_congigured_once = true
+
+
+	//wayland.wl_display_sync(handle_done_sync_callback, &deve_sair)
 
 	for !deve_sair {
 		msg, ok := wayland.read_message()
@@ -93,5 +133,6 @@ main :: proc() {
 			dispatch(msg)
 		}
 	}
+
 	
 }
