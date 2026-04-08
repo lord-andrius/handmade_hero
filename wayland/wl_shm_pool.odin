@@ -17,6 +17,7 @@ Wl_Shm_Pool_Requests :: enum(u32) {
 
 wl_shm_pool_create_buffer :: proc(wl_shm_pool: ^Wl_Shm_Pool, offset: i32, width: i32, height: i32, stride: i32, format: Wl_Shm_Format, allocator:runtime.Allocator = context.allocator) -> (^Wl_Buffer, bool) {
     assert(int(offset + (width * height)) <= len(wl_shm_pool.shared_buffer.data))
+    bytes_per_pixel := stride / width
     new_buffer_id := generate_new_id(wl_buffer_dispatch)
     msg: Message
     set_message_object(&msg, wl_shm_pool.wl_shm_id)
@@ -33,7 +34,7 @@ wl_shm_pool_create_buffer :: proc(wl_shm_pool: ^Wl_Shm_Pool, offset: i32, width:
     bytes_escritos, ok := write_message(msg)
     buffer := wl_buffer_create(new_buffer_id, wl_shm_pool.shared_buffer, transmute([]u8)runtime.Raw_Slice {
         data = &wl_shm_pool.shared_buffer.data[offset],
-        len = int(offset + (width * height))
+        len = int(offset + (width * height * bytes_per_pixel))
     })
     
     if wl_shm_pool.buffers == nil {
