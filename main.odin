@@ -2,7 +2,7 @@ package main
 
 import "base:runtime"
 import "core:image"
-import "core:image/bmp"
+import "core:image/netpbm"
 import "core:fmt"
 import "wayland"
 import "core:math/rand"
@@ -69,6 +69,19 @@ handle_xdg_surface_configure :: proc(user_data: rawptr, xdg_surface_id: u32, ser
 	}
 }
 
+acessar_pixel_por_cordenada :: proc(x: u32, y: u32, width: u32, height: u32, bytes_per_pixel: u32, data: []u8) -> []u8 {
+
+	index := ((y * (width * bytes_per_pixel)) + (x * bytes_per_pixel))
+	if int(index) >= len(data) {
+		fmt.printfln("x: %d | y : %d | width: %d | height: %d | index: %d", x, y, width, height, index)
+	}
+	fmt.println("index =", index)
+	return transmute([]u8)runtime.Raw_Slice {
+		data = &data[index],
+		len = int(bytes_per_pixel),
+	}
+}
+
 main :: proc() {
 	wayland.connect()
 	wayland.wl_display_set_event_error_callback(error_callback, nil)
@@ -105,9 +118,29 @@ main :: proc() {
 	window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .xrgb8888)
 	deve_sair = false
 
+	image_data, _ := image.load_from_file("res/teste.ppm")
+	defer image.destroy(image_data)
+
 	for &p in window_context.buffer.data {
-		p = u8(rand.int64_range(0, 255))
+		p = 0xFF
 	}
+
+	
+	image_size := image_data.width * image_data.height
+	
+	for y in 0..<image_data.height {
+		for x in 0..<image_data.width {
+			
+			impx := acessar_pixel_por_cordenada(u32(x), u32(y), u32(image_data.width), u32(image_data.height), 3, image_data.pixels.buf[:])
+			buffer_pixel := acessar_pixel_por_cordenada(u32(x), u32(y), WIDTH, HEIGHT, 4, window_context.buffer.data)
+			buffer_pixel[0] = impx[0]
+			buffer_pixel[1] = impx[1]
+			buffer_pixel[2] = impx[2]
+			buffer_pixel[3] = impx[2]
+		}
+	}
+
+	
 
 
 	window_context.wl_surface_id = wayland.wl_compositor_create_surface(wl_compositor_id)
