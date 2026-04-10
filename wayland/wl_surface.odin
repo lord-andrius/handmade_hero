@@ -16,7 +16,6 @@ Wl_Surface_Requests :: enum(u32) {
     set_opaque_region,
     set_input_region,
     commit,
-    // depois implementar esses
     set_buffer_transform,
     set_buffer_scale,
     damage_buffer,
@@ -27,7 +26,6 @@ Wl_Surface_Requests :: enum(u32) {
 Wl_Surface_Events :: enum(u32) {
     enter,
     leave,
-    // depis implementar esses
     preferred_buffer_scale,
     preferred_buffer_transform,
 
@@ -35,6 +33,8 @@ Wl_Surface_Events :: enum(u32) {
 
 Wl_Surface_Event_Enter_Callback :: proc(user_data: rawptr, wl_surface_id: u32, wl_output_id: u32)
 Wl_Surface_Event_Leave_callback :: proc(user_data: rawptr, wl_surface_id: u32, wl_output_id: u32)
+Wl_Surface_Event_Preferred_Buffer_Scale_callback :: proc(user_data: rawptr, wl_surface_id: u32, factor: i32)
+Wl_Surface_Event_Preferred_Buffer_Transform_callback :: proc(user_data: rawptr, wl_surface_id: u32, transform: Wl_Output_Transform)
 
 Wl_Surface_Events_Callbacks :: map[u32] struct {
     callbacks: [Wl_Surface_Events]rawptr,
@@ -130,6 +130,58 @@ wl_surface_commit :: proc(wl_surface_id: u32) -> bool {
     return ok
 }
 
+wl_surface_set_buffer_transform :: proc(wl_surface_id: u32, transformation: Wl_Output_Transform) -> bool {
+    msg: Message
+    args_buffer: [size_of(u32)]u8
+    msg.arguments = args_buffer[:]
+    set_message_object(&msg, wl_surface_id)
+    set_message_opcode(&msg, u16(Wl_Surface_Requests.set_buffer_transform))
+    write_int_into_message_args(msg, i32(transformation))
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
+wl_surface_set_buffer_scale :: proc(wl_surface_id: u32, scale: i32) -> bool {
+    msg: Message
+    args_buffer: [size_of(u32)]u8
+    msg.arguments = args_buffer[:]
+    set_message_object(&msg, wl_surface_id)
+    set_message_opcode(&msg, u16(Wl_Surface_Requests.set_buffer_scale))
+    write_int_into_message_args(msg, scale)
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
+wl_surface_damage_buffer :: proc(wl_surface_id: u32, x, y, width, height: i32) -> bool {
+    msg: Message
+    args_buffer: [size_of(i32) * 4]u8
+    msg.arguments = args_buffer[:]
+    set_message_object(&msg, wl_surface_id)
+    set_message_opcode(&msg, u16(Wl_Surface_Requests.damage_buffer))
+    args_index := write_int_into_message_args(msg, x)
+    args_index = write_int_into_message_args(msg, y, args_index)
+    args_index = write_int_into_message_args(msg, width, args_index)
+    args_index = write_int_into_message_args(msg, height, args_index)
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
+wl_surface_offset :: proc(wl_surface_id: u32, x, y: i32) -> bool {
+    msg: Message
+    args_buffer: [size_of(i32) * 2]u8
+    msg.arguments = args_buffer[:]
+    set_message_object(&msg, wl_surface_id)
+    set_message_opcode(&msg, u16(Wl_Surface_Requests.offset))
+    args_index := write_int_into_message_args(msg, x)
+    args_index = write_int_into_message_args(msg, y, args_index)
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
 wl_surface_set_enter_callback :: proc(wl_surface_id: u32, user_data: rawptr, callback: Wl_Surface_Event_Enter_Callback) {
     if wl_surface_events_callbacks == nil {
         wl_surface_events_callbacks = make(type_of(wl_surface_events_callbacks))
@@ -177,6 +229,59 @@ wl_surface_set_leave_callback :: proc(wl_surface_id: u32, user_data: rawptr, cal
                 .leave = user_data,
                 .preferred_buffer_scale = nil,
                 .preferred_buffer_transform = nil
+            },
+        }
+    }
+}
+
+
+wl_surface_set_preferred_buffer_scale_callback :: proc(wl_surface_id: u32, user_data: rawptr, callback: Wl_Surface_Event_Preferred_Buffer_Scale_callback) {
+    if wl_surface_events_callbacks == nil {
+        wl_surface_events_callbacks = make(type_of(wl_surface_events_callbacks))
+    }
+    
+    if events, ok := wl_surface_events_callbacks[wl_surface_id]; ok {
+        events.callbacks[.preferred_buffer_scale] = rawptr(callback)
+        events.user_data[.preferred_buffer_scale] = user_data
+    } else {
+         wl_surface_events_callbacks[wl_surface_id] = {
+            callbacks = {
+                .enter = nil,
+                .leave = nil,
+                .preferred_buffer_scale = rawptr(callback),
+                .preferred_buffer_transform = nil 
+            },
+            user_data = {
+                .enter = nil,
+                .leave = nil,
+                .preferred_buffer_scale = user_data,
+                .preferred_buffer_transform = nil
+            },
+        }
+    }
+}
+
+l_surface_set_preferred_buffer_transform_callback :: proc(wl_surface_id: u32, user_data: rawptr, callback: Wl_Surface_Event_Preferred_Buffer_Transform_callback) {
+    if wl_surface_events_callbacks == nil {
+        wl_surface_events_callbacks = make(type_of(wl_surface_events_callbacks))
+    }
+    
+    if events, ok := wl_surface_events_callbacks[wl_surface_id]; ok {
+        events.callbacks[.preferred_buffer_transform] = rawptr(callback)
+        events.user_data[.preferred_buffer_transform] = user_data
+    } else {
+         wl_surface_events_callbacks[wl_surface_id] = {
+            callbacks = {
+                .enter = nil,
+                .leave = nil,
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = rawptr(callback)
+            },
+            user_data = {
+                .enter = nil,
+                .leave = nil,
+                .preferred_buffer_scale = nil,
+                .preferred_buffer_transform = user_data
             },
         }
     }
