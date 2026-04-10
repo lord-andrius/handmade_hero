@@ -172,12 +172,11 @@ wl_shm_create_pool :: proc(wl_shm_id: u32, shared_buffer: ^shared.Shared_Buffer,
     (transmute(^linux.Fd)(posix.CMSG_DATA(csmg)))^ = shared_buffer.fd
     
     msg: Message
-    args_buf: [12]u8
+    args_buf: [8]u8
     msg.arguments = args_buf[:]
     set_message_object(&msg, wl_shm_id)
     set_message_opcode(&msg, u16(Wl_Shm_Requests.create_pool))
     args_index := write_uint_into_message_args(msg, id)
-    args_index = write_uint_into_message_args(msg, u32(shared_buffer.fd), args_index)
     args_index = write_int_into_message_args(msg, i32(size_in_bytes), args_index)
     set_message_length_based_on_args_length(&msg)
     _, ok := write_message(msg, control[:])

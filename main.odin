@@ -110,11 +110,6 @@ main :: proc() {
 
 	pool, _ := wayland.wl_shm_create_pool(wl_shm_id, buffer, len(buffer.data))
 
-	//wl_buffer, _ := wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .argb8888)
-	//defer wayland.wl_buffer_destroy(wl_buffer)
- 
-	wayland.wl_shm_pool_resize(&pool, 1920*1080*2*4)
-
 	window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(&pool, 0, WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, .xrgb8888)
 	deve_sair = false
 
