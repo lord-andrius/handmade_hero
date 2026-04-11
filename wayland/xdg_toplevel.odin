@@ -24,8 +24,47 @@ Xdg_Toplevel_Events :: enum(u32) {
     wm_capabilities,
 }
 
+Xdg_Toplevel_Error :: enum(u32) {
+    invalid_resize_edge,
+    invalid_parent,
+    invalid_size,
+}
+
+Xdg_Toplevel_Resize_Edge :: enum(u32) {
+    none,
+    top,
+    bottom,
+    left,
+    top_left,
+    bottom_left,
+    right,
+    top_right,
+    bottom_right,
+}
+
+Xdg_Toplevel_State :: enum(u32) {
+    maximized = 1,
+    fullscreen,
+    resizing,
+    activated,
+    tiled_left,
+    tiled_right,
+    tiled_top,
+    tiled_bottom,
+}
+
+
+Xdg_Toplevel_Wm_Capabilities :: enum(u32) {
+    window_menu = 1, // show_window_menu is available
+    maximize, // set_maximized
+    fullscreen, // set_fullscreen and unset_fullscreen are available
+    minimize, // set_minimized is available
+}
+
 Xdg_Toplevel_Event_Configure_Callback :: proc(user_data: rawptr, xdg_toplevel_id: u32, serial: u32)
 Xdg_Toplevel_Close_Configure_Callback :: proc(user_data: rawptr, xdg_toplevel_id: u32)
+Xdg_Toplevel_Configure_Bounds_Callback :: proc(user_data: rawptr, xdg_toplevel_id: u32, width: i32, height: i32)
+Xdg_Toplevel_Wm_Capabilities_Callback :: proc(user_data: rawptr, xdg_toplevel_id: u32, capabilities: []Xdg_Toplevel_Wm_Capabilities)
 
 
 xdg_toplevel_destroy :: proc(xdg_toplevel_id: u32) -> bool{
