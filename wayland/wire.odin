@@ -205,6 +205,19 @@ read_string_from_message_args :: proc(message: Message, index_on_arguments: int 
     return transmute(string)str, args_index + int(string_length)
 }
 
+// TESTAR!!!
+read_array_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> ([]u8, int) {
+    args_index := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        args_index = index_on_arguments + ( 4 - (index_on_arguments % 4))
+    }
+    array_length: u32
+    array_length, args_index = read_uint_from_message_args(message, args_index)
+    array: runtime.Raw_Slice
+    array.data = transmute([^]byte)(&message.arguments[args_index])
+    return transmute([]u8)array, args_index + int(array_length)
+}
+
 // É responsabilidade, de quem chama a função garantir que tem espaço
 // suficiente para todos os argumentos.
 // NOTA: Quando for allocar conte com paddings
@@ -246,6 +259,21 @@ write_string_into_message_args :: proc(message: Message, arg: string, index_on_a
     index_arguments += len(arg)
     // escrevendo o byte nulo depois do conteúdo da string.
     message.arguments[index_arguments] = 0
+    index_arguments += 1
+    return index_arguments
+}
+
+// TESTAR!!!
+write_array_into_message_args :: proc(message: Message, arg: []u8, index_on_arguments: int = 0) -> int{
+    index_arguments := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
+    }
+    assert(index_arguments + size_of(u32) + len(arg) < len(message.arguments))
+    index_arguments = write_uint_into_message_args(message, u32(len(arg)), index_arguments)
+    mem.copy(transmute(rawptr)&message.arguments[index_arguments], &arg[0], len(arg))
+    index_arguments += len(arg)
+    
     index_arguments += 1
     return index_arguments
 }
