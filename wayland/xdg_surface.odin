@@ -68,6 +68,8 @@ xdg_surface_get_popup :: proc(xdg_surface_id: u32) -> (u32, bool) {
 }
 
 xdg_surface_set_window_geometry :: proc(xdg_surface_id: u32, x: i32, y: i32, width: i32, height: i32) -> bool {
+    assert(width != 0)
+    assert(height != 0)
     msg: Message
     args_buf: [size_of(i32) * 4]u8
     msg.arguments = args_buf[:]

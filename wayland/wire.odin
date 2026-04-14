@@ -214,6 +214,9 @@ read_array_from_message_args :: proc(message: Message, index_on_arguments: int =
     array_length: u32
     array_length, args_index = read_uint_from_message_args(message, args_index)
     array: runtime.Raw_Slice
+    if array_length == 0 {
+        return []u8{}, args_index + int(array_length)
+    }
     array.data = transmute([^]byte)(&message.arguments[args_index])
     return transmute([]u8)array, args_index + int(array_length)
 }
@@ -251,6 +254,7 @@ write_string_into_message_args :: proc(message: Message, arg: string, index_on_a
         index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
     }
     // o mais um é para o byte nulo.
+    x := index_arguments + size_of(u32) + len(arg) + 1
     assert(index_arguments + size_of(u32) + len(arg) + 1 < len(message.arguments))
     // como strings no wayland tem são: {tamanho: u32, data: [u8...], \0} temos que colocar o tamnhho.
     string_length := len(arg) + 1 // o tamanho da string tem que 

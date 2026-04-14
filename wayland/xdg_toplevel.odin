@@ -103,7 +103,9 @@ xdg_toplevel_set_parent :: proc(xdg_toplevel_id: u32, parent_toplevel: u32) -> b
 
 xdg_toplevel_set_title :: proc(xdg_toplevel_id: u32, title: string, allocator := context.allocator) -> bool {
     msg: Message
-    msg.arguments, _ = make([]u8, len(title) + size_of(u32) + 1, allocator)
+    size := len(title) + size_of(u32) + 1
+    size = size + (size_of(u32) - (size % size_of(u32)))
+    msg.arguments, _ = make([]u8, size, allocator)
     defer delete(msg.arguments)
     set_message_object(&msg, xdg_toplevel_id)
     set_message_opcode(&msg, u16(Xdg_Toplevel_Requests.set_title))
@@ -115,7 +117,9 @@ xdg_toplevel_set_title :: proc(xdg_toplevel_id: u32, title: string, allocator :=
 
 xdg_toplevel_set_app_id :: proc(xdg_toplevel_id: u32, app_id: string, allocator := context.allocator) -> bool {
     msg: Message
-    msg.arguments, _ = make([]u8, len(app_id) + size_of(u32) + 1, allocator)
+    size := len(app_id) + size_of(u32) + 1
+    size = size + (size_of(u32) - (size % size_of(u32)))
+    msg.arguments, _ = make([]u8, size, allocator)
     defer delete(msg.arguments)
     set_message_object(&msg, xdg_toplevel_id)
     set_message_opcode(&msg, u16(Xdg_Toplevel_Requests.set_app_id))

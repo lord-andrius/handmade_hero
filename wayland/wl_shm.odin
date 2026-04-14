@@ -161,6 +161,7 @@ bind_wl_shm_global_object :: proc(wl_registry_id: u32, wl_shm_name: u32, interfa
     return id
 }
 
+// TODO: limpar wl_shm_create_pool para usar o tamanho do shared_buffer
 wl_shm_create_pool :: proc(wl_shm_id: u32, shared_buffer: ^shared.Shared_Buffer, size_in_bytes: int) -> (Wl_Shm_Pool, bool) {
     assert(size_in_bytes != 0)
     id := generate_new_id(nil) // shm_poll não tem eventos

@@ -115,6 +115,7 @@ acessar_pixel_por_cordenada :: proc(
 }
 
 main :: proc() {
+	/*
 	wayland.connect()
 	wayland.wl_display_set_event_error_callback(error_callback, nil)
 
@@ -235,6 +236,32 @@ main :: proc() {
 			dispatch(msg)
 		}
 	}
+	*/
 
+	window.initialize()
+
+	if window.create_window({
+		title = "Handmade",
+		width = 1280,
+		height = 720,
+		flags = {.resizable},
+		bytes_per_pixel = 4,
+		pixel_format = .xrgb8888
+	}) == false {
+		fmt.println("could not create window")
+		return 
+	}
+
+	should_close := false
+
+	for !should_close {
+		event: window.Event
+		for window.read_event(&event) {
+			switch e in event {
+				case window.Close_Event:
+					should_close = true
+			}
+		}
+	}
 
 }

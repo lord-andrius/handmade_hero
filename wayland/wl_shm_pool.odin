@@ -35,7 +35,7 @@ wl_shm_pool_create_buffer :: proc(wl_shm_pool: ^Wl_Shm_Pool, offset: i32, width:
     buffer := wl_buffer_create(new_buffer_id, wl_shm_pool.shared_buffer, transmute([]u8)runtime.Raw_Slice {
         data = &wl_shm_pool.shared_buffer.data[offset],
         len = int(offset + (width * height * bytes_per_pixel))
-    })
+    }, allocator)
     
     if wl_shm_pool.buffers == nil {
         wl_shm_pool.buffers, _ = make(type_of(wl_shm_pool.buffers))
