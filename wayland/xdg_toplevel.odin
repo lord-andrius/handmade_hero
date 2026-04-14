@@ -252,7 +252,7 @@ xdg_toplevel_set_configure_callback :: proc(xdg_toplevel_id: u32, user_data: raw
         xdg_toplevel_events_callbakcks = make(type_of(xdg_toplevel_events_callbakcks))
     }
 
-    if callbacks, ok := xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
+    if callbacks, ok := &xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
         callbacks.callbacks[.configure] = rawptr(callback)
         callbacks.user_data[.configure] = user_data
     } else {
@@ -279,7 +279,7 @@ xdg_toplevel_set_close_callback :: proc(xdg_toplevel_id: u32, user_data: rawptr,
         xdg_toplevel_events_callbakcks = make(type_of(xdg_toplevel_events_callbakcks))
     }
 
-    if callbacks, ok := xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
+    if callbacks, ok := &xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
         callbacks.callbacks[.close] = rawptr(callback)
         callbacks.user_data[.close] = user_data
     } else {
@@ -305,7 +305,7 @@ xdg_toplevel_set_configure_bounds_callback :: proc(xdg_toplevel_id: u32, user_da
         xdg_toplevel_events_callbakcks = make(type_of(xdg_toplevel_events_callbakcks))
     }
 
-    if callbacks, ok := xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
+    if callbacks, ok := &xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
         callbacks.callbacks[.configure_bounds] = rawptr(callback)
         callbacks.user_data[.configure_bounds] = user_data
     } else {
@@ -332,7 +332,7 @@ xdg_toplevel_set_wm_capabilities_callback :: proc(xdg_toplevel_id: u32, user_dat
         xdg_toplevel_events_callbakcks = make(type_of(xdg_toplevel_events_callbakcks))
     }
 
-    if callbacks, ok := xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
+    if callbacks, ok := &xdg_toplevel_events_callbakcks[xdg_toplevel_id]; ok {
         callbacks.callbacks[.wm_capabilities] = rawptr(callback)
         callbacks.user_data[.wm_capabilities] = user_data
     } else {

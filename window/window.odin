@@ -377,6 +377,10 @@ read_all_wayland_events :: proc() {
 			msg, ok := wayland.read_message()
 			defer delete(msg.arguments)
 			id := wayland.get_message_object_id(msg)
+			opcode := wayland.get_message_opcode(msg)
+			if id == window_context.xdg_toplevel_id && opcode == u16(wayland.Xdg_Toplevel_Events.close){
+				fmt.println("close")
+			}
 			if dispatch, ok := wayland.id_context.object_id_to_interface_displatch_proc[id]; ok {
 				dispatch(msg)
 			}

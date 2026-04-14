@@ -1,3 +1,4 @@
-[x] - Completar xdg_toplevel
-[] - Implementar um loop de eventos
-[] - Lidar com as decoreações da janela
+[x] - Completar xdg_toplevel.
+[x] - Implementar um loop de eventos.
+[]  - Fazer com que todos no if de todos os set_callbacks usemos o & para pegar do mapa.
+[] - Lidar com as decoreações da janela.
