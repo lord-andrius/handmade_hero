@@ -151,7 +151,7 @@ write_message :: proc(message: Message, control: []u8 = []u8{}) -> (int, bool) {
 }
 
 
-read_message :: proc() -> (Message, bool) {
+read_message :: proc(allocator := context.allocator) -> (Message, bool) {
     fd := wayland_file_descriptor
     message: Message
     header_buf: runtime.Raw_Slice
@@ -164,7 +164,7 @@ read_message :: proc() -> (Message, bool) {
     }
 
     // -8 porque no length conta o header
-    message_bytes, err := make([]u8, get_message_length(message) - MESSAGE_HEADER_SIZE_IN_BYTES)
+    message_bytes, err := make([]u8, get_message_length(message) - MESSAGE_HEADER_SIZE_IN_BYTES, allocator)
 
     bytes_lidos, erro = linux.read(fd, message_bytes)
     message.arguments = message_bytes
