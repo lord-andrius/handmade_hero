@@ -214,6 +214,7 @@ read_array_from_message_args :: proc(message: Message, index_on_arguments: int =
     array_length: u32
     array_length, args_index = read_uint_from_message_args(message, args_index)
     array: runtime.Raw_Slice
+    array.len = int(array_length)
     if array_length == 0 {
         return []u8{}, args_index + int(array_length)
     }
