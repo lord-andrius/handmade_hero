@@ -58,7 +58,7 @@ wl_shm_pool_resize :: proc(wl_shm_pool: ^Wl_Shm_Pool, new_size: int) -> bool{
     }
     index_start := 0
     for &i in wl_shm_pool.buffers {
-        i.data = i.shared_buffer.data[index_start: len(i.data)]
+        i.data = i.shared_buffer.data[index_start:index_start + len(i.data)]
         index_start += len(i.data)
     }
 

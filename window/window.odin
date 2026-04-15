@@ -1,5 +1,6 @@
 package window
 
+import "vendor:windows/XAudio2"
 import "core:fmt"
 import "../wayland"
 import "../shared"
@@ -137,17 +138,27 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 	for state in states {
 		#partial switch state {
 			case .resizing:
-				fmt.println("Resizing")
+				fmt.printfln(
+					"%dx%d -> %dx%d",
+					window_context.width,
+					window_context.height,
+					width,
+					height
+				)
+				fmt.printfln("%d -> %d", window_context.size, width * height * window_context.bytes_per_pixel)
+				if int(width * height * window_context.bytes_per_pixel) > len(window_context.shm_pool.shared_buffer.data) {
+					wayland.wl_shm_pool_resize(
+						&window_context.shm_pool,
+						int(width * height * window_context.bytes_per_pixel)
+					)
+					fmt.println("It resized")
+				}
 				window_context.width = width
 				window_context.height = height
 				window_context.stride = window_context.width * window_context.bytes_per_pixel
 				window_context.size = window_context.stride * window_context.height					
-				if width * height * window_context.bytes_per_pixel > window_context.size{
-					wayland.wl_shm_pool_resize(
-						&window_context.shm_pool,
-						int(window_context.size)
-					)
-				}
+				
+				old_buffer := window_context.buffer
 				window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(
 					&window_context.shm_pool,
 					0,
@@ -156,6 +167,9 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 					window_context.stride,
 					window_context.format
 				)
+				// isso é uma gambiarra pois os buffers funcionam de um jeito muito estranho
+				wayland.wl_buffer_destroy(old_buffer)
+				pop_front(&window_context.shm_pool.buffers)
 		}
 	}
 }
