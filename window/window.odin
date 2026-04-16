@@ -254,11 +254,14 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 	)
 	wayland.xdg_toplevel_set_title(window_context.xdg_toplevel_id, "handmade")
 
-
-	window_context.zxdg_toplevel_decoration_id = wayland.zxdg_decoration_manager_v1_get_toplevel_decoration(
-		window_context.zxdg_decoration_manager_v1_id,
-		window_context.xdg_toplevel_id
-	)
+	// If por conta que gnome é uma merda e não implementa ssd.
+	if window_context.zxdg_decoration_manager_v1_id != 0 {
+		window_context.zxdg_toplevel_decoration_id = wayland.zxdg_decoration_manager_v1_get_toplevel_decoration(
+			window_context.zxdg_decoration_manager_v1_id,
+			window_context.xdg_toplevel_id
+		)
+	}
+	
 
 
 	wayland.wl_surface_commit(window_context.wl_surface_id)
