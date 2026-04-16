@@ -146,9 +146,12 @@ xdg_toplevel_close_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32) {
 }
 
 xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32, width: i32, height: i32, states: []wayland.Xdg_Toplevel_State) {
-	for state in states {
-		#partial switch state {
-			case .resizing:
+	if width == 0 || height == 0 {
+		return
+	} 
+	//for state in states {
+		//#partial switch state {
+		//	case .resizing:
 				if int(width * height * window_context.bytes_per_pixel) > len(window_context.shm_pool.shared_buffer.data) {
 					wayland.wl_shm_pool_resize(
 						&window_context.shm_pool,
@@ -173,8 +176,8 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 				// isso é uma gambiarra pois os buffers funcionam de um jeito muito estranho
 				wayland.wl_buffer_destroy(old_buffer)
 				pop_front(&window_context.shm_pool.buffers)
-		}
-	}
+		//}
+	//}
 }
 
 zxdg_toplevel_decoration_configure_callbak :: proc(user_data: rawptr, zxdg_toplevel_decoration_v1_id: u32, mode: wayland.Zxdg_Toplevel_Decoration_V1_mode) {
