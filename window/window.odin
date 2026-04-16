@@ -17,6 +17,8 @@ Window_Context :: struct {
 	wl_surface_id: u32,
 	xdg_surface_id: u32,
 	xdg_toplevel_id: u32,
+	zxdg_decoration_manager_v1_id: u32,
+	zxdg_toplevel_decoration_id: u32,
 	// fim ids
 	available_formats: [dynamic;64]wayland.Wl_Shm_Format,
 	width: i32,
@@ -38,6 +40,7 @@ wl_shm_format_callback :: proc(user_data: rawptr, wl_shm_id: u32, format: waylan
 
 
 wl_registry_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32, interface: string, version: u32) {
+	fmt.println(interface)
 	if interface == "wl_compositor" {
 		window_context.wl_compositor_id = wayland.bind_wl_compsitor_global_object(
 			wl_registry_id,
@@ -59,6 +62,13 @@ wl_registry_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name
 		)
 	} else if interface == "xdg_wm_base" {
 		window_context.xdg_wm_base_id = wayland.bind_xdg_wm_base(
+			wl_registry_id,
+			name,
+			interface,
+			version
+		)
+	} else if interface == "zxdg_decoration_manager_v1" {
+		window_context.zxdg_decoration_manager_v1_id = wayland.bind_zxdg_decoration_manager_v1(
 			wl_registry_id,
 			name,
 			interface,
@@ -87,6 +97,7 @@ init :: proc() -> bool {
 }
 
 deinit :: proc() {
+	//wayland.zxdg_decoration_manager_v1_destroy(window_context.zxdg_decoration_manager_v1)
 	wayland.xdg_toplevel_destroy(window_context.xdg_toplevel_id)
 	wayland.xdg_surface_destroy(window_context.xdg_surface_id)
 	wayland.xdg_wm_base_destroy(window_context.xdg_wm_base_id)
@@ -138,14 +149,6 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 	for state in states {
 		#partial switch state {
 			case .resizing:
-				fmt.printfln(
-					"%dx%d -> %dx%d",
-					window_context.width,
-					window_context.height,
-					width,
-					height
-				)
-				fmt.printfln("%d -> %d", window_context.size, width * height * window_context.bytes_per_pixel)
 				if int(width * height * window_context.bytes_per_pixel) > len(window_context.shm_pool.shared_buffer.data) {
 					wayland.wl_shm_pool_resize(
 						&window_context.shm_pool,
@@ -174,9 +177,16 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 	}
 }
 
-create_window :: proc() -> bool {
-	window_context.width = 1280
-	window_context.height = 720
+zxdg_toplevel_decoration_configure_callbak :: proc(user_data: rawptr, zxdg_toplevel_decoration_v1_id: u32, mode: wayland.Zxdg_Toplevel_Decoration_V1_mode) {
+	wayland.zxdg_toplevel_decoration_v1_set_mode(
+		zxdg_toplevel_decoration_v1_id,
+		mode
+	)
+}
+
+create_window :: proc(width: i32, height: i32, title: string) -> bool {
+	window_context.width = width
+	window_context.height = height
 	window_context.format = .xrgb8888
 	window_context.bytes_per_pixel = 4
 	window_context.stride = window_context.width * window_context.bytes_per_pixel
@@ -242,8 +252,18 @@ create_window :: proc() -> bool {
 		nil,
 		xdg_toplevel_configure_callback
 	)
+	wayland.xdg_toplevel_set_title(window_context.xdg_toplevel_id, "handmade")
+
+
+	window_context.zxdg_toplevel_decoration_id = wayland.zxdg_decoration_manager_v1_get_toplevel_decoration(
+		window_context.zxdg_decoration_manager_v1_id,
+		window_context.xdg_toplevel_id
+	)
+
 
 	wayland.wl_surface_commit(window_context.wl_surface_id)
+
+	
 	
 	return true
 

@@ -10,7 +10,7 @@ main :: proc() {
     }
     defer window.deinit()
 
-    window.create_window()
+    window.create_window(600, 400, "handmade")
 
 
     for !window.window_should_close() {
