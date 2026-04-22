@@ -5,6 +5,7 @@ import "core:fmt"
 import "../wayland"
 import "../shared"
 import "core:sys/linux"
+import "core:mem"
 
 
 Window_Context :: struct {
@@ -149,35 +150,32 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 	if width == 0 || height == 0 {
 		return
 	} 
-	//for state in states {
-		//#partial switch state {
-		//	case .resizing:
-				if int(width * height * window_context.bytes_per_pixel) > len(window_context.shm_pool.shared_buffer.data) {
-					wayland.wl_shm_pool_resize(
-						&window_context.shm_pool,
-						int(width * height * window_context.bytes_per_pixel)
-					)
-					fmt.println("It resized")
-				}
-				window_context.width = width
-				window_context.height = height
-				window_context.stride = window_context.width * window_context.bytes_per_pixel
-				window_context.size = window_context.stride * window_context.height					
-				
-				old_buffer := window_context.buffer
-				window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(
-					&window_context.shm_pool,
-					0,
-					window_context.width,
-					window_context.height,
-					window_context.stride,
-					window_context.format
-				)
-				// isso é uma gambiarra pois os buffers funcionam de um jeito muito estranho
-				wayland.wl_buffer_destroy(old_buffer)
-				pop_front(&window_context.shm_pool.buffers)
-		//}
-	//}
+	
+	if int(width * height * window_context.bytes_per_pixel) > len(window_context.shm_pool.shared_buffer.data) {
+		wayland.wl_shm_pool_resize(
+			&window_context.shm_pool,
+			int(width * height * window_context.bytes_per_pixel)
+		)
+		fmt.println("It resized")
+	}
+	window_context.width = width
+	window_context.height = height
+	window_context.stride = window_context.width * window_context.bytes_per_pixel
+	window_context.size = window_context.stride * window_context.height					
+	
+	old_buffer := window_context.buffer
+	window_context.buffer, _ = wayland.wl_shm_pool_create_buffer(
+		&window_context.shm_pool,
+		0,
+		window_context.width,
+		window_context.height,
+		window_context.stride,
+		window_context.format
+	)
+	// isso é uma gambiarra pois os buffers funcionam de um jeito muito estranho
+	wayland.wl_buffer_destroy(old_buffer)
+	pop_front(&window_context.shm_pool.buffers)
+	
 }
 
 zxdg_toplevel_decoration_configure_callbak :: proc(user_data: rawptr, zxdg_toplevel_decoration_v1_id: u32, mode: wayland.Zxdg_Toplevel_Decoration_V1_mode) {
@@ -276,8 +274,14 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 }
 
 clear_window :: proc() {
-	for &x in window_context.buffer.data {
-		x = 0xFF
+	buffer_data := &window_context.buffer.data[0]
+	for y in 0..<window_context.height {
+		pixel := transmute(^u32)buffer_data
+		for x in 0..<window_context.width {
+			pixel ^= 0xFFFFFFFF
+			pixel = mem.ptr_offset(pixel, 1)
+		}
+		buffer_data = mem.ptr_offset(buffer_data, window_context.stride)
 	}
 }
 
