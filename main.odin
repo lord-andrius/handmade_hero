@@ -15,26 +15,26 @@ main :: proc() {
     window.create_window(600, 400, "handmade")
 
     xQ, yQ: i32 = 0, 0
-
+    t := time.now()
     for !window.window_should_close() {
-        if xQ > 200 {
+        ctx := window.get_window_context()
+        if xQ > ctx.width {
             xQ = 0
+            yQ += 30
         }
 
-        if yQ > 200 {
+        if yQ > ctx.height {
             yQ = 0
         }
-        t := time.now()
+        t = time.now()
         window.begin_drawing()
         window.clear_window()
-        ctx := window.get_window_context()
-        render.draw_rect(ctx, xQ, yQ, 100, 100, 86, 86, 86)
+        render.draw_rect(ctx, xQ, yQ, 100, 100, 255, 0, 0)
         window.end_drawing()
-        xQ += 1
-        yQ += 1
+        xQ += 30
         time_spend := time.diff(t, time.now())
         if time.duration_milliseconds(time_spend) < 16 {
-            time.sleep(time.Duration(time.duration_milliseconds(time_spend) - 16) * 1000000)
+            time.sleep(16e6)
             fmt.println(time.duration_milliseconds(time_spend))
         }
 
