@@ -138,6 +138,7 @@ xdg_surface_configure_callback :: proc(user_data: rawptr, xdg_surface_id: u32, s
 		0,
 		0
 	)
+	
 	wayland.xdg_surface_ack_configure(xdg_surface_id, serial)
 	wayland.wl_surface_commit(window_context.wl_surface_id)
 }
@@ -273,12 +274,16 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 
 }
 
+get_window_context :: proc() -> Window_Context {
+	return window_context
+}
+
 clear_window :: proc() {
 	buffer_data := &window_context.buffer.data[0]
 	for y in 0..<window_context.height {
 		pixel := transmute(^u32)buffer_data
 		for x in 0..<window_context.width {
-			pixel ^= 0xFFFFFFFF
+			pixel^ = 0xFFFFFFFF
 			pixel = mem.ptr_offset(pixel, 1)
 		}
 		buffer_data = mem.ptr_offset(buffer_data, window_context.stride)
@@ -290,7 +295,16 @@ window_should_close :: proc() -> bool {
 }
 
 begin_drawing :: proc() {
+	wayland.wl_surface_damage_buffer(window_context.wl_surface_id, 0, 0, window_context.width, window_context.height)
 	roundtrip()
 }
 
-end_drawing :: proc() {}
+end_drawing :: proc() {
+	wayland.wl_surface_attach(
+		window_context.wl_surface_id,
+		window_context.buffer,
+		0,
+		0
+	)
+	wayland.wl_surface_commit(window_context.wl_surface_id)
+}
