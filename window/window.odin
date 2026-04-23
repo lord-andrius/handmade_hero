@@ -6,6 +6,7 @@ import "../wayland"
 import "../shared"
 import "core:sys/linux"
 import "core:mem"
+import "core:strings"
 
 
 Window_Context :: struct {
@@ -20,6 +21,9 @@ Window_Context :: struct {
 	xdg_toplevel_id: u32,
 	zxdg_decoration_manager_v1_id: u32,
 	zxdg_toplevel_decoration_id: u32,
+	wl_seat_id: u32,
+	wl_pointer_id: u32,
+	wl_keyboard_id: u32,
 	// fim ids
 	available_formats: [dynamic;64]wayland.Wl_Shm_Format,
 	width: i32,
@@ -31,6 +35,7 @@ Window_Context :: struct {
 	shm_pool: wayland.Wl_Shm_Pool,
 	shared_buffer: ^shared.Shared_Buffer,
 	buffer: ^wayland.Wl_Buffer,
+	seat_name: string,
 }
 
 window_context: Window_Context
@@ -39,6 +44,14 @@ wl_shm_format_callback :: proc(user_data: rawptr, wl_shm_id: u32, format: waylan
 	append(&window_context.available_formats, format)
 }
 
+wl_seat_name_callback :: proc(user_data: rawptr, wl_seat: u32, name: string) {
+	fmt.println("seat name: ", name)
+	window_context.seat_name, _ = strings.clone(name)
+}
+
+wl_seat_capabilities_callback :: proc(user_data: rawptr, wl_seat: u32, capabilities: u32) {
+	fmt.printfln("capabilities: %x", capabilities)
+}
 
 wl_registry_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name: u32, interface: string, version: u32) {
 	fmt.println(interface)
@@ -74,6 +87,25 @@ wl_registry_global_callback :: proc(user_data: rawptr, wl_registry_id: u32, name
 			name,
 			interface,
 			version
+		)
+	} else if interface == "wl_seat" {
+		window_context.wl_seat_id = wayland.bind_wl_seat(
+			wl_registry_id,
+			name,
+			interface,
+			version
+		)
+
+		wayland.wl_seat_set_name_callback(
+			window_context.wl_seat_id,
+			nil,
+			wl_seat_name_callback
+		)
+
+		wayland.wl_seat_set_capabilities_callback(
+			window_context.wl_seat_id,
+			nil,
+			wl_seat_capabilities_callback
 		)
 	}
 }

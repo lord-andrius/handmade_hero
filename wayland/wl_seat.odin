@@ -1,5 +1,7 @@
 package wayland
 
+import "core:fmt"
+
 Wl_Seat_Requests :: enum(u32) {
     get_pointer,
     get_keyboard,
@@ -74,36 +76,40 @@ wl_seat_release :: proc(wl_seat_id: u32) {
     _, ok := write_message(msg)
 }
 
-wl_seat_set_capabilities_callback :: proc(wl_seat_id: u32, user_data: rawptr, callback: Wl_Seat_Capabilities_Event_Callback) {
+wl_seat_set_capabilities_callback :: proc(wl_seat_id: u32, user_data: rawptr, procedure: Wl_Seat_Capabilities_Event_Callback) {
     if wl_seat_events_callbacks == nil {
         wl_seat_events_callbacks = make(type_of(wl_seat_events_callbacks))
     }
 
     if callback, ok := &wl_seat_events_callbacks[wl_seat_id]; ok {
-        callback.callbacks[Wl_Seat_Events.capabilities] = rawptr(callback)
+        callback.callbacks[Wl_Seat_Events.capabilities] = rawptr(procedure)
         callback.user_data[Wl_Seat_Events.capabilities] = user_data
-    } else {
-        wl_seat_events_callbacks[wl_seat_id] = {
-            callbacks = {.capabilities = rawptr(callback), .name = nil},
-            user_data = {.capabilities = user_data, .name = nil},
-        }
+        return
     }
+
+    wl_seat_events_callbacks[wl_seat_id] = {
+        callbacks = {.capabilities = rawptr(procedure), .name = nil},
+        user_data = {.capabilities = user_data, .name = nil},
+    }
+
 }
 
-wl_seat_set_name_callback :: proc(wl_seat_id: u32, user_data: rawptr, callback: Wl_Seat_Name_Event_Callback) {
+wl_seat_set_name_callback :: proc(wl_seat_id: u32, user_data: rawptr, procedure: Wl_Seat_Name_Event_Callback) {
     if wl_seat_events_callbacks == nil {
         wl_seat_events_callbacks = make(type_of(wl_seat_events_callbacks))
     }
 
     if callback, ok := &wl_seat_events_callbacks[wl_seat_id]; ok {
-        callback.callbacks[Wl_Seat_Events.name] = rawptr(callback)
+        callback.callbacks[Wl_Seat_Events.name] = rawptr(procedure)
         callback.user_data[Wl_Seat_Events.name] = user_data   
-    } else {
-        wl_seat_events_callbacks[wl_seat_id] = {
-            callbacks = {.capabilities = nil, .name = rawptr(callback)},
-            user_data = {.capabilities = nil, .name = user_data},
-        }
+        return
     }
+
+    wl_seat_events_callbacks[wl_seat_id] = {
+        callbacks = {.capabilities = nil, .name = rawptr(procedure)},
+        user_data = {.capabilities = nil, .name = user_data},
+    }
+    
 }
 
 wl_seat_dispatch :: proc(msg: Message) {
