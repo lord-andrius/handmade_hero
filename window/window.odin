@@ -297,9 +297,12 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 	}
 	
 
-
 	wayland.wl_surface_commit(window_context.wl_surface_id)
 
+	window_context.wl_pointer_id = wayland.wl_seat_get_pointer(window_context.wl_seat_id)
+	window_context.wl_keyboard_id = wayland.wl_seat_get_keyboard(window_context.wl_seat_id)
+
+	
 	
 	
 	return true
