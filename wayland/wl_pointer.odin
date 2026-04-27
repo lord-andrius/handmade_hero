@@ -122,4 +122,37 @@ Wl_Pointer_Axis_Relative_Direction_Event :: proc(
     direction: Wl_Pointer_Axis_Relative_Direction,
 )
 
+Wl_Pointer_Callbacks :: map[u32]struct {
+    callbacks: [Wl_Pointer_Events]rawptr,
+    user_data: [Wl_Pointer_Events]rawptr,
+}
+
+wl_pointer_callbacks: Wl_Pointer_Callbacks = nil
+
+wl_pointer_set_cursor :: proc(wl_pointer: u32, serial: u32, surface: u32, hotspot_x, hotspot_y: i32) -> bool {
+    msg: Message
+    args_buffer: [size_of(serial) + size_of(surface) + size_of(hotspot_x) + size_of(hotspot_y)]u8
+    msg.arguments = args_buffer[:]
+    set_message_object(&msg, wl_pointer)
+    set_message_opcode(&msg, u16(Wl_Pointer_Requests.set_cursor))
+    args_index := write_uint_into_message_args(msg, serial)
+    args_index = write_uint_into_message_args(msg, surface, args_index)
+    args_index = write_int_into_message_args(msg, hotspot_x, args_index)
+    args_index = write_int_into_message_args(msg, hotspot_y, args_index)
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
+wl_pointer_release :: proc(wl_pointer: u32) -> bool {
+    msg: Message
+    set_message_object(&msg, wl_pointer)
+    set_message_opcode(&msg, u16(Wl_Pointer_Requests.release))
+    set_message_length_based_on_args_length(&msg)
+    _, ok := write_message(msg)
+    return ok
+}
+
+
+
 wl_pointer_dispatch :: proc(msg: Message) {}

@@ -182,6 +182,15 @@ read_uint_from_message_args :: proc(message: Message, index_on_arguments: int = 
  return (transmute(^u32)(&message.arguments[args_index]))^, args_index + size_of(u32)
 }
 
+read_fixed_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> (fixed, int) {
+ // remove padding
+ args_index := index_on_arguments
+ if index_on_arguments % 4 != 0 {
+    args_index = index_on_arguments + ( 4 - (index_on_arguments % 4))
+ }
+ return (transmute(^fixed)(&message.arguments[args_index]))^, args_index + size_of(fixed)
+}
+
 read_int_from_message_args :: proc(message: Message, index_on_arguments: int = 0) -> (i32, int) {
     args_index := index_on_arguments
     if index_on_arguments % 4 != 0 {
@@ -234,6 +243,19 @@ write_uint_into_message_args :: proc(message: Message, arg: u32, index_on_argume
     // garantindo que tem espaço nos argumentos
     assert(index_arguments + size_of(arg) <= len(message.arguments))
     (transmute(^u32)&message.arguments[index_arguments])^ = arg
+    index_arguments += size_of(arg)
+    return index_arguments
+}
+
+write_fixed_into_message_args :: proc(message: Message, arg: fixed, index_on_arguments: int = 0) -> int {
+    // isso garanti que o alinhamento dos bytes estejam corretos
+    index_arguments := index_on_arguments
+    if index_on_arguments % 4 != 0 {
+        index_arguments = index_on_arguments + (4 - (index_on_arguments % 4))
+    }
+    // garantindo que tem espaço nos argumentos
+    assert(index_arguments + size_of(arg) <= len(message.arguments))
+    (transmute(^fixed)&message.arguments[index_arguments])^ = arg
     index_arguments += size_of(arg)
     return index_arguments
 }
