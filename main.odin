@@ -1,6 +1,7 @@
 package main
 
 import "window"
+import "wayland"
 import "core:fmt"
 import "render"
 import "core:time"
@@ -35,9 +36,6 @@ main :: proc() {
         time_spend := time.diff(t, time.now())
         if time.duration_milliseconds(time_spend) < 16 {
             time.sleep(16e6)
-         //   fmt.println(time.duration_milliseconds(time_spend))
         }
-
-        //fmt.println(time.duration_milliseconds(time.diff(t, time.now())))
     }
 }
