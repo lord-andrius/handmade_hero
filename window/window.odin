@@ -214,7 +214,7 @@ xdg_toplevel_configure_callback :: proc(user_data: rawptr, xdg_toplevel_id: u32,
 zxdg_toplevel_decoration_configure_callbak :: proc(user_data: rawptr, zxdg_toplevel_decoration_v1_id: u32, mode: wayland.Zxdg_Toplevel_Decoration_V1_mode) {
 	wayland.zxdg_toplevel_decoration_v1_set_mode(
 		zxdg_toplevel_decoration_v1_id,
-		mode
+		wayland.Zxdg_Toplevel_Decoration_V1_mode.server_side
 	)
 }
 
@@ -293,6 +293,11 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 		window_context.zxdg_toplevel_decoration_id = wayland.zxdg_decoration_manager_v1_get_toplevel_decoration(
 			window_context.zxdg_decoration_manager_v1_id,
 			window_context.xdg_toplevel_id
+		)
+		wayland.zxdg_toplevel_decoration_v1_set_configure(
+			window_context.zxdg_toplevel_decoration_id,
+			nil,
+			zxdg_toplevel_decoration_configure_callbak
 		)
 	}
 	

@@ -13,7 +13,7 @@ Zxdg_Toplevel_Decoration_V1_Events :: enum(u32) {
 Zxdg_Toplevel_Decoration_V1_Configure_Callback :: proc(user_data: rawptr, zxdg_toplevel_decoration_v1_id: u32, mode: Zxdg_Toplevel_Decoration_V1_mode)
 
 Zxdg_Toplevel_Decoration_V1_mode :: enum(u32) {
-    client_side,
+    client_side = 1,
     server_side,
 }
 
