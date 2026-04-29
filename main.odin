@@ -1,7 +1,6 @@
 package main
 
 import "window"
-import "wayland"
 import "core:fmt"
 import "render"
 import "core:time"
