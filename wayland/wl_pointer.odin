@@ -64,8 +64,8 @@ Wl_Pointer_Motion_Event_Callback :: proc(
     user_data: rawptr,
     wl_pointer: u32,
     time: u32,
-    surface_x: u32,
-    surface_y: u32,
+    surface_x: fixed,
+    surface_y: fixed,
 )
 
 Wl_Pointer_Button_Event_Callback :: proc(

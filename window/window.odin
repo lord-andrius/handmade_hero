@@ -1,13 +1,25 @@
 package window
 
-import "vendor:windows/XAudio2"
+import "vendor:windows/wasapi"
 import "core:fmt"
 import "../wayland"
 import "../shared"
 import "core:sys/linux"
 import "core:mem"
 import "core:strings"
+import "core:math"
 
+MouseButtonState :: enum {
+	None,
+	Pressed,
+	Released,
+}
+
+MouseButton :: enum {
+	// constantes achadas em /usr/include/linux/input-event-codes.h
+	Left = 0x110,
+	Right = 0x111,
+}
 
 Window_Context :: struct {
 	window_should_close: bool,
@@ -36,6 +48,15 @@ Window_Context :: struct {
 	shared_buffer: ^shared.Shared_Buffer,
 	buffer: ^wayland.Wl_Buffer,
 	seat_name: string,
+
+	// mouse state
+	mouseX: f32,
+	mouseY: f32,
+	mouseVelocity: f32,
+	mouseLeftButton: MouseButtonState,
+	mouseRightButton: MouseButtonState,
+	mouseLeftButtonPreviousFrame: MouseButtonState,
+	mouseRightButtonPreviousFrame: MouseButtonState,
 }
 
 window_context: Window_Context
@@ -218,6 +239,53 @@ zxdg_toplevel_decoration_configure_callbak :: proc(user_data: rawptr, zxdg_tople
 	)
 }
 
+wl_pointer_enter_callback :: proc(
+    user_data: rawptr,
+    wl_pointer: u32,
+    surface: u32,
+    surface_x: wayland.fixed,
+    surface_y: wayland.fixed,
+) {
+	if surface == window_context.wl_surface_id {
+		window_context.mouseX = wayland.fixedToF32(surface_x)
+		window_context.mouseY = wayland.fixedToF32(surface_y)
+		window_context.mouseVelocity = 0
+	}
+}
+
+wl_pointer_motion_callback :: proc(
+    user_data: rawptr,
+    wl_pointer: u32,
+    time: u32,
+    surface_x: wayland.fixed,
+    surface_y: wayland.fixed,
+) {
+	surface_x := wayland.fixedToF32(surface_x)
+	surface_y := wayland.fixedToF32(surface_y)
+	window_context.mouseVelocity = math.sqrt(math.pow(window_context.mouseX - surface_x,2) + math.pow(window_context.mouseY - surface_y,2)) / f32(time)
+	window_context.mouseX = f32(surface_x)
+	window_context.mouseY = f32(surface_y)
+}
+
+wl_pointer_button_callback :: proc(
+    user_data: rawptr,  
+    wl_pointer: u32,
+    serial: u32,
+    time: u32,
+    button: u32, 
+    state: wayland.Wl_Pointer_Button_State,
+) {
+	button := MouseButton(button)
+
+	new_state := MouseButtonState.Pressed if state == .pressed else MouseButtonState.Released
+
+	if button == .Left {
+		window_context.mouseLeftButton = new_state
+	} else if button == .Right { // faço isso porque o mouse pode ter outros botões
+		window_context.mouseRightButton = new_state
+	}
+}
+
 create_window :: proc(width: i32, height: i32, title: string) -> bool {
 	window_context.width = width
 	window_context.height = height
@@ -300,6 +368,7 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 			zxdg_toplevel_decoration_configure_callbak
 		)
 	}
+
 	
 
 	wayland.wl_surface_commit(window_context.wl_surface_id)
@@ -307,8 +376,23 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 	window_context.wl_pointer_id = wayland.wl_seat_get_pointer(window_context.wl_seat_id)
 	window_context.wl_keyboard_id = wayland.wl_seat_get_keyboard(window_context.wl_seat_id)
 
+	wayland.wl_pointer_set_enter_callback(
+		window_context.wl_pointer_id,
+		nil,
+		wl_pointer_enter_callback
+	)
 	
-	
+	wayland.wl_pointer_set_motion_callback(
+		window_context.wl_pointer_id,
+		nil,
+		wl_pointer_motion_callback
+	)
+
+	wayland.wl_pointer_set_button_callback(
+		window_context.wl_pointer_id,
+		nil,
+		wl_pointer_button_callback
+	)
 	
 	return true
 
@@ -335,11 +419,23 @@ window_should_close :: proc() -> bool {
 }
 
 begin_drawing :: proc() {
+
+	if window_context.mouseLeftButton == .Released && window_context.mouseLeftButtonPreviousFrame == .Released {
+		window_context.mouseLeftButton = .None
+	}
+
+	if window_context.mouseRightButton == .Released && window_context.mouseRightButtonPreviousFrame == .Released {
+		window_context.mouseRightButton = .None
+	}
+
 	wayland.wl_surface_damage_buffer(window_context.wl_surface_id, 0, 0, window_context.width, window_context.height)
 	roundtrip()
 }
 
 end_drawing :: proc() {
+
+	window_context.mouseLeftButtonPreviousFrame = window_context.mouseLeftButton
+	window_context.mouseRightButtonPreviousFrame = window_context.mouseRightButton
 	wayland.wl_surface_attach(
 		window_context.wl_surface_id,
 		window_context.buffer,
@@ -347,4 +443,24 @@ end_drawing :: proc() {
 		0
 	)
 	wayland.wl_surface_commit(window_context.wl_surface_id)
+}
+
+isMouseDown :: proc(button: MouseButton) -> bool {
+	if button == .Left {
+		return window_context.mouseLeftButton == .Pressed
+	} else if button == .Right{
+		return window_context.mouseRightButton == .Pressed
+	}
+
+	return false
+}
+
+isMouseReleased :: proc(button: MouseButton) -> bool {
+	if button == .Left {
+		return window_context.mouseLeftButton == .Released
+	} else if button == .Right{
+		return window_context.mouseRightButton == .Released
+	}
+
+	return false
 }
