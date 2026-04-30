@@ -1,5 +1,6 @@
 package window
 
+import "base:runtime"
 import "vendor:windows/wasapi"
 import "core:fmt"
 import "../wayland"
@@ -57,6 +58,9 @@ Window_Context :: struct {
 	mouseRightButton: MouseButtonState,
 	mouseLeftButtonPreviousFrame: MouseButtonState,
 	mouseRightButtonPreviousFrame: MouseButtonState,
+
+	//keyboard state
+	keymap: []u8
 }
 
 window_context: Window_Context
@@ -286,6 +290,35 @@ wl_pointer_button_callback :: proc(
 	}
 }
 
+wl_keyboard_keymap_callback :: proc(
+	user_data: rawptr,
+	wl_keyboard: u32,
+	format: wayland.Keymap_Format,
+	fd: linux.Fd,
+	size: u32,
+) {
+	if len(window_context.keymap) == 0 {
+		linux.munmap(&window_context.keymap[0], len(window_context.keymap))
+	}
+	stat: linux.Stat
+	linux.fstat(fd, &stat)
+	new_addr, error := linux.mmap(
+		0,
+		stat.size,
+		{.READ},
+		{.PRIVATE},
+		fd
+	)
+	if error != .NONE {
+		panic("Could not alocate space for new keymap")
+	}
+	window_context.keymap = transmute([]u8)runtime.Raw_Slice{
+		data = new_addr,
+		len = int(stat.size),
+	}
+	fmt.println(string(window_context.keymap))
+}
+
 create_window :: proc(width: i32, height: i32, title: string) -> bool {
 	window_context.width = width
 	window_context.height = height
@@ -392,6 +425,12 @@ create_window :: proc(width: i32, height: i32, title: string) -> bool {
 		window_context.wl_pointer_id,
 		nil,
 		wl_pointer_button_callback
+	)
+
+	wayland.wl_keyboard_set_keymap_callback(
+		window_context.wl_keyboard_id,
+		nil,
+		wl_keyboard_keymap_callback
 	)
 	
 	return true

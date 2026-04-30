@@ -223,13 +223,14 @@ wl_keyboard_dispatch :: proc(msg: Message) {
 	}
 	switch event {
 		case . keymap:
+			// nota fd está no control
 			if callback.callbacks[.keymap] == nil do return
 			args_index := 0
 			format: u32
 			fd: i32
 			size: u32
 			format, args_index = read_uint_from_message_args(msg)
-			fd, args_index = read_int_from_message_args(msg, args_index)
+			//fd, args_index = read_int_from_message_args(msg, args_index)
 			size, args_index = read_uint_from_message_args(msg,  args_index)
 			Wl_Keyboard_Keymap_Event_Callback(callback.callbacks[.keymap])(
 				callback.user_data[.keymap],
