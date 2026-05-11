@@ -2,6 +2,8 @@ package wayland
 
 import "base:runtime"
 import "core:sys/linux"
+import "core:fmt"
+import "core:sys/posix"
 
 Wl_Keyboard_Requests :: enum (u32) {
 	release,
@@ -223,20 +225,20 @@ wl_keyboard_dispatch :: proc(msg: Message) {
 	}
 	switch event {
 		case . keymap:
-			// nota fd está no control
 			if callback.callbacks[.keymap] == nil do return
 			args_index := 0
 			format: u32
-			fd: i32
+			fd: linux.Fd
 			size: u32
 			format, args_index = read_uint_from_message_args(msg)
-			//fd, args_index = read_int_from_message_args(msg, args_index)
+			control_header_ptr := transmute(^posix.cmsghdr)&msg.control[0]
+			fd = (transmute(^linux.Fd)posix.CMSG_DATA(control_header_ptr))^
 			size, args_index = read_uint_from_message_args(msg,  args_index)
 			Wl_Keyboard_Keymap_Event_Callback(callback.callbacks[.keymap])(
 				callback.user_data[.keymap],
 				wl_keyboard,
 				Keymap_Format(format),
-				linux.Fd(fd),
+				fd,
 				size
 			)
 		case .enter:

@@ -297,7 +297,7 @@ wl_keyboard_keymap_callback :: proc(
 	fd: linux.Fd,
 	size: u32,
 ) {
-	if len(window_context.keymap) == 0 {
+	if len(window_context.keymap) != 0 {
 		linux.munmap(&window_context.keymap[0], len(window_context.keymap))
 	}
 	stat: linux.Stat

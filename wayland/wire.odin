@@ -71,7 +71,8 @@ Array :: struct {
 
 Message :: struct {
     header: u64,
-    arguments: []u8
+    arguments: []u8,
+    control: []u8
 }
 
 MESSAGE_HEADER_SIZE_IN_BYTES :: 8
@@ -150,26 +151,70 @@ write_message :: proc(message: Message, control: []u8 = []u8{}) -> (int, bool) {
     return bytes_written, true
 }
 
+// diferente do contúdo da msg o control
+// basicamente só vai conter fds então dá
+// bom ele ser estático
+CONTROL_BUFFER: [256]u8
 
-read_message :: proc(allocator := context.allocator) -> (Message, bool) {
+read_message :: proc(allocator := context.allocator) -> (Message,  bool) {
     fd := wayland_file_descriptor
     message: Message
-    header_buf: runtime.Raw_Slice
-    header_buf.data = rawptr(&message.header)
-    header_buf.len = 8
+    // header_buf: runtime.Raw_Slice
+    // header_buf.data = rawptr(&message.header)
+    // header_buf.len = 8
 
-    bytes_lidos, erro := linux.read(fd, transmute([]u8)header_buf)
+    // bytes_lidos, erro := linux.read(fd, transmute([]u8)header_buf)
+    // if erro != .NONE {
+    //     return message, false
+    // }
+
+    // // -8 porque no length conta o header
+    // message_bytes, err := make([]u8, get_message_length(message) - MESSAGE_HEADER_SIZE_IN_BYTES, allocator)
+
+    // bytes_lidos, erro = linux.read(fd, message_bytes)
+    // message.arguments = message_bytes
+    // return message, true
+
+    msg_header: linux.Msg_Hdr
+    msg_header.iov = {
+        {
+            base = transmute([^]u8)&message.header,
+            len = size_of(u64),
+        }
+    }
+    msg_header.control = CONTROL_BUFFER[:]
+
+    bytes_lidos, erro := linux.recvmsg(fd, &msg_header, {})
+
     if erro != .NONE {
-        return message, false
+        return {}, false
     }
 
-    // -8 porque no length conta o header
-    message_bytes, err := make([]u8, get_message_length(message) - MESSAGE_HEADER_SIZE_IN_BYTES, allocator)
+    message.control = CONTROL_BUFFER[:]
 
-    bytes_lidos, erro = linux.read(fd, message_bytes)
-    message.arguments = message_bytes
+    message_length := get_message_length(message)
+
+    if message_length - MESSAGE_HEADER_SIZE_IN_BYTES > 0 {
+        message.arguments = make([]u8, message_length - MESSAGE_HEADER_SIZE_IN_BYTES)
+
+        msg_header.iov = {
+            {
+                base = &message.arguments[0],
+                len = len(message.arguments),
+            }
+        }
+
+        msg_header.control = nil
+        
+        bytes_lidos, erro = linux.recvmsg(fd, &msg_header, {})
+
+        if erro != .NONE {
+            return {}, false
+        }    
+    }
+    
+
     return message, true
-
 }
 
 
