@@ -441,12 +441,15 @@ get_window_context :: proc() -> Window_Context {
 	return window_context
 }
 
-clear_window :: proc() {
+clear_window :: proc(r, g, b: u8) {
 	buffer_data := &window_context.buffer.data[0]
 	for y in 0..<window_context.height {
 		pixel := transmute(^u32)buffer_data
 		for x in 0..<window_context.width {
-			pixel^ = 0xFFFFFFFF
+			pixel^ = 0xFF
+			pixel^ |= u32(r) >> 8
+			pixel^ |= u32(g) >> 16
+			pixel^ |= u32(b) >> 24
 			pixel = mem.ptr_offset(pixel, 1)
 		}
 		buffer_data = mem.ptr_offset(buffer_data, window_context.stride)

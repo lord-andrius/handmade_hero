@@ -47,7 +47,7 @@ main :: proc() {
     //     ctx := window.get_window_context()
     //     t = time.now()
     //     window.begin_drawing()
-    //     window.clear_window()
+    //     window.clear_window(23, 7, 99)
     //     render.draw_rect(ctx, i32(ctx.mouseX), i32(ctx.mouseY), 100, 100, color.r, color.g, color.b)
     //     window.end_drawing()
     //     time_spend := time.diff(t, time.now())
