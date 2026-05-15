@@ -117,12 +117,16 @@ Parse_Context :: struct {
         DONE_ACCUMULATING,
         IGNORING_UTIL_END_OF_SEQUENCE,
         ESPECTING_SEQUENCE,
+        BLOCK_DISCOVERING, // Onde vamos descobrir os limites dos blocos
+        BLOCK_DISCOVERED,
     },
     // NOTA: Por favor diminuir esse acumulador depois.
     accumulated_sequence: [dynamic; 128]u8,
     expected_sequence_to_end_accumulating_or_ignoring: []u8,
     expected_sequence_to_end_accumulating_or_ignoring_buffer: [16]u8,
     where_it_stoped_lookin_into_the_file: int,
+    previous_keyword: Keywords,
+    block_text: []u8,
     line_number: int, // começa em zero
     done: bool,
     error: bool,
@@ -166,11 +170,6 @@ load_keymap :: proc(xkb_map_complete: []u8) {
                             ctx.error = true
                             ctx.error_message = "'*' is invalid in this context."
                             break loop 
-                        case '\\':
-                            ctx.done = true
-                            ctx.error = true
-                            ctx.error_message = "'\\' is invalid in this context."
-                            break loop 
                         case '\n':
                             ctx.line_number += 1
                             fallthrough
@@ -191,50 +190,53 @@ load_keymap :: proc(xkb_map_complete: []u8) {
                 accumulated_string := string(ctx.accumulated_sequence[:])
                 switch accumulated_string {
                     // fallthroughs são temporátios
-                    case Keywords_Str[.ACTION]: fallthrough
-                    case Keywords_Str[.ALIAS]: fallthrough
-                    case Keywords_Str[.ALPHANUMERIC_KEYS]: fallthrough
-                    case Keywords_Str[.ALTERNATE_GROUP]: fallthrough
-                    case Keywords_Str[.ALTERNATE]: fallthrough
-                    case Keywords_Str[.AUGMENT]: fallthrough
-                    case Keywords_Str[.DEFAULT]: fallthrough
-                    case Keywords_Str[.FUNCTION_KEYS]: fallthrough
-                    case Keywords_Str[.GROUP]: fallthrough
-                    case Keywords_Str[.HIDDEN]: fallthrough
-                    case Keywords_Str[.INCLUDE]: fallthrough
-                    case Keywords_Str[.INDICATOR]: fallthrough
-                    case Keywords_Str[.INTERPRET]: fallthrough
-                    case Keywords_Str[.KEY]: fallthrough
-                    case Keywords_Str[.KEYPAD_KEYS]: fallthrough
-                    case Keywords_Str[.KEYS]: fallthrough
-                    case Keywords_Str[.LOGO]: fallthrough
-                    case Keywords_Str[.MOD_MAP]: fallthrough
-                    case Keywords_Str[.MODIFIER_KEYS]: fallthrough
-                    case Keywords_Str[.MODMAP]: fallthrough
-                    case Keywords_Str[.MODIFIER_MAP]: fallthrough
-                    case Keywords_Str[.OUTLINE]: fallthrough
-                    case Keywords_Str[.OVERLAY]: fallthrough
-                    case Keywords_Str[.OVERRIDE]: fallthrough
-                    case Keywords_Str[.PARTIAL]: fallthrough
-                    case Keywords_Str[.REPLACE]: fallthrough
-                    case Keywords_Str[.ROW]: fallthrough
-                    case Keywords_Str[.SECTION]: fallthrough
-                    case Keywords_Str[.SHAPE]: fallthrough
-                    case Keywords_Str[.SOLID]: fallthrough
-                    case Keywords_Str[.TEXT]: fallthrough
-                    case Keywords_Str[.TYPE]: fallthrough
-                    case Keywords_Str[.VIRTUAL_MODIFIERS]: fallthrough
-                    case Keywords_Str[.VIRTUAL]: fallthrough
-                    case Keywords_Str[.XKB_COMPAT_MAP]: fallthrough
-                    case Keywords_Str[.XKB_COMPAT]: fallthrough
-                    case Keywords_Str[.XKB_COMPATIBILITY_MAP]: fallthrough
-                    case Keywords_Str[.XKB_COMPATIBILITY]: fallthrough
-                    case Keywords_Str[.XKB_GEOMETRY]: fallthrough
-                    case Keywords_Str[.XKB_KEYCODES]: fallthrough
-                    case Keywords_Str[.XKB_KEYMAP]: fallthrough
-                    case Keywords_Str[.XKB_LAYOUT]: fallthrough
-                    case Keywords_Str[.XKB_SEMANTICS]: fallthrough
-                    case Keywords_Str[.XKB_SYMBOLS]: fallthrough
+                    case Keywords_Str[.ACTION]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.ALIAS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.ALPHANUMERIC_KEYS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.ALTERNATE_GROUP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.ALTERNATE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.AUGMENT]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.DEFAULT]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.FUNCTION_KEYS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.GROUP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.HIDDEN]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.INCLUDE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.INDICATOR]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.INTERPRET]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.KEY]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.KEYPAD_KEYS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.KEYS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.LOGO]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.MOD_MAP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.MODIFIER_KEYS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.MODMAP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.MODIFIER_MAP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.OUTLINE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.OVERLAY]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.OVERRIDE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.PARTIAL]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.REPLACE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.ROW]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.SECTION]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.SHAPE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.SOLID]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.TEXT]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.TYPE]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.VIRTUAL_MODIFIERS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.VIRTUAL]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_COMPAT_MAP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_COMPAT]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_COMPATIBILITY_MAP]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_COMPATIBILITY]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_GEOMETRY]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_KEYCODES]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_KEYMAP]:
+                        ctx.state = .BLOCK_DISCOVERING
+                        ctx.previous_keyword = .XKB_KEYMAP
+                        continue
+                    case Keywords_Str[.XKB_LAYOUT]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_SEMANTICS]: fmt.println("keyword:", accumulated_string)
+                    case Keywords_Str[.XKB_SYMBOLS]: fmt.println("keyword:", accumulated_string)
                     case Keywords_Str[.XKB_TYPES]:
                         fmt.println("keyword:", accumulated_string)
                     case:
@@ -263,6 +265,39 @@ load_keymap :: proc(xkb_map_complete: []u8) {
                 }
                 ctx.where_it_stoped_lookin_into_the_file = index_ignore_sequence + len(ignore_sequence_string)
                 ctx.state = .ACCUMULATING
+
+            case .BLOCK_DISCOVERING:
+                index_begin_block, index_end_block: int
+                found_index_begin := false
+                should_consider_closing_block := true
+                found_block := false
+                for char, index in xkb_map_complete[ctx.where_it_stoped_lookin_into_the_file:] {
+                    if char == '{' && found_index_begin == false {
+                        index_begin_block = index
+                    } else if char == '{' && found_index_begin == true {
+                        should_consider_closing_block = false
+                    } else if char == '}' && should_consider_closing_block == false {
+                        should_consider_closing_block = true
+                    } else if char == '}' && should_consider_closing_block == true {
+                        index_end_block = index
+                        found_block = true
+                        break
+                    }
+                }
+
+                if !found_block {
+                    ctx.done = true
+                    ctx.error = true
+                    ctx.error_message = "Not matching } for block."
+                    continue
+                }
+
+                ctx.state = .BLOCK_DISCOVERED
+                ctx.block_text = xkb_map_complete[index_begin_block:index_end_block + 1]
+                ctx.where_it_stoped_lookin_into_the_file = index_end_block
+
+            case .BLOCK_DISCOVERED:
+
         }
     }
 
